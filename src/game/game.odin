@@ -2,6 +2,9 @@ package game
 
 import "core:fmt"
 import "core:math"
+import "core:os"
+import "core:strconv"
+import "core:strings"
 import "../input"
 import rl "vendor:raylib"
 
@@ -18,20 +21,26 @@ WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 
 PLAYER_SPEED :: 5
 
-Player :: struct {
+Entity :: struct {
 	pos: [2]f32,
 	tilepos: [2]u8,
 	vel: [2]f32,
 }
+
 Memory :: struct {
 	win_name:   cstring,
 	is_running: bool,
 	state:      [2]State,
-	tiles:      []u8,
-	player:     Player,
+	levels:     []Level,
 	input:      input.Input,
+	player:     Entity,
+	enemies:    []Entity,
 }
 gmem: Memory
+
+Level :: struct {
+	tiles: []u8,
+}
 
 new :: proc(win_name: cstring) -> ^Memory {
 	init(win_name)
@@ -51,11 +60,69 @@ init :: proc(win_name: cstring) {
 }
 
 setup :: proc() {
-	gmem.tiles = make([]u8, NUM_TILES)
+	data, ok := os.read_entire_file("data/level1");
+	if !ok {
+		fmt.println("error reading file")
+		return
+	}
+
+	gmem.levels = make([]Level, 1)
+	gmem.levels[0].tiles = make([]u8, NUM_TILES)
+	txtData, _ := strings.replace_all(string(data), "\n", "")
+
+	parts := strings.split(strings.trim_space(txtData), ",")
+	for p, i in parts {
+		v := strconv.atoi(p)
+		gmem.levels[0].tiles[i] = u8(v)
+		x := i32(i % NUM_TILES_IN_ROW) * TILE_SIZE
+	}
+	gmem.enemies = make([]Entity, 6)
+	gmem.enemies[0] = Entity{
+		pos = {
+			8 * TILE_SIZE,
+			3 * TILE_SIZE,
+		},
+		vel = {1.23, 0},
+	}
+	gmem.enemies[1] = Entity{
+		pos = {
+			(NUM_TILES_IN_ROW-3) * TILE_SIZE,
+			4 * TILE_SIZE,
+		},
+		vel = {-1.3, 0},
+	}
+	gmem.enemies[2] = Entity{
+		pos = {
+			2 * TILE_SIZE,
+			7 * TILE_SIZE,
+		},
+		vel = {1.1, 0},
+	}
+	gmem.enemies[3] = Entity{
+		pos = {
+			(NUM_TILES_IN_ROW-10) * TILE_SIZE,
+			8 * TILE_SIZE,
+		},
+		vel = {-1.1, 0},
+	}
+	gmem.enemies[4] = Entity{
+		pos = {
+			16 * TILE_SIZE,
+			11 * TILE_SIZE,
+		},
+		vel = {1.3, 0},
+	}
+	gmem.enemies[5] = Entity{
+		pos = {
+			(NUM_TILES_IN_ROW-2) * TILE_SIZE,
+			12 * TILE_SIZE,
+		},
+		vel = {-1.23, 0},
+	}
 
 	midway_x_tile := u8(NUM_TILES_IN_ROW*0.5)
 	bottom_y_tile := u8(NUM_TILES_IN_COL)
-	gmem.player = Player{
+	gmem.player = Entity{
 		pos = {
 			f32(midway_x_tile)*TILE_SIZE,
 			f32(bottom_y_tile)*TILE_SIZE,
@@ -65,7 +132,6 @@ setup :: proc() {
 }
 
 run :: proc() {
-	fmt.println(gmem.is_running)
 	for !rl.WindowShouldClose() {
 		input.process(&gmem.input)
 		update()
@@ -73,10 +139,8 @@ run :: proc() {
 	}
 }
 
-process_input :: proc() {
-}
-
 update :: proc() {
+	// Update player
 	gmem.player.vel = 0.0
 
 	if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
@@ -94,21 +158,34 @@ update :: proc() {
     gmem.player.tilepos.x = u8(gmem.player.pos.x / TILE_SIZE)
     gmem.player.tilepos.y = u8(gmem.player.pos.y / TILE_SIZE)
 
-	fmt.printf("%v\n", gmem.player)
+	// Update enemies
+	for &e in gmem.enemies {
+		e.pos += e.vel
+		if e.pos.x < -TILE_SIZE do e.pos.x = WINDOW_WIDTH 
+		if e.pos.x > WINDOW_WIDTH do e.pos.x = -TILE_SIZE 
+	}
 }
 
 render :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 
-	for t, i in gmem.tiles {
+	for i := 0; i < len(gmem.levels[0].tiles); i += 1 {
+		t := gmem.levels[0].tiles[i]
+
 		x := i32(i % NUM_TILES_IN_ROW) * TILE_SIZE
 		y := i32(i / NUM_TILES_IN_ROW) * TILE_SIZE
 
 		colour := rl.GRAY
 
 		if t == 0 {
-			colour = rl.DARKGRAY
+			colour = rl.GREEN
+		}
+		if t == 1 {
+			colour = rl.LIGHTGRAY
+		}
+		if t == 2 {
+			colour = rl.BLACK
 		}
 
 		rl.DrawRectangle(x, y, TILE_SIZE, TILE_SIZE, colour)
@@ -119,8 +196,16 @@ render :: proc() {
 		i32(gmem.player.tilepos.x) * TILE_SIZE, i32(gmem.player.tilepos.y) * TILE_SIZE,
 		// i32(gmem.player.pos.x), i32(gmem.player.pos.y),
 		TILE_SIZE, TILE_SIZE,
-		rl.GREEN,
+		rl.BLUE,
 	)
+
+	for e in gmem.enemies {
+		rl.DrawRectangle(
+			i32(e.pos.x), i32(e.pos.y),
+			TILE_SIZE, TILE_SIZE,
+			rl.RED,
+		)
+	}
 
 	rl.EndDrawing()
 }
