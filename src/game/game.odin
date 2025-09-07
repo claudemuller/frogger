@@ -2,6 +2,7 @@ package game
 
 import "core:fmt"
 import "core:math"
+import "core:encoding/json"
 import "core:os"
 import "core:strconv"
 import "core:strings"
@@ -60,22 +61,30 @@ init :: proc(win_name: cstring) {
 }
 
 setup :: proc() {
-	data, ok := os.read_entire_file("data/level1");
+	jsonData, ok := os.read_entire_file("data/level1.json");
 	if !ok {
 		fmt.println("error reading file")
 		return
 	}
 
-	gmem.levels = make([]Level, 1)
-	gmem.levels[0].tiles = make([]u8, NUM_TILES)
-	txtData, _ := strings.replace_all(string(data), "\n", "")
-
-	parts := strings.split(strings.trim_space(txtData), ",")
-	for p, i in parts {
-		v := strconv.atoi(p)
-		gmem.levels[0].tiles[i] = u8(v)
-		x := i32(i % NUM_TILES_IN_ROW) * TILE_SIZE
+	RawEntity :: struct {
+		pos: []string,
+		vel: []f32,
 	}
+	Data :: struct {
+		enemies: []RawEntity,
+		tiles: []u8,
+	}
+
+	d : Data
+	err := json.unmarshal(jsonData, &d)
+	if err != nil {
+		fmt.printf("%v\n", err)
+		return
+	}
+	gmem.levels = make([]Level, 1)
+	gmem.levels[0].tiles = d.tiles
+
 	gmem.enemies = make([]Entity, 6)
 	gmem.enemies[0] = Entity{
 		pos = {
@@ -120,6 +129,7 @@ setup :: proc() {
 		vel = {-1.23, 0},
 	}
 
+
 	midway_x_tile := u8(NUM_TILES_IN_ROW*0.5)
 	bottom_y_tile := u8(NUM_TILES_IN_COL)
 	gmem.player = Entity{
@@ -129,6 +139,8 @@ setup :: proc() {
 		},
 		tilepos = {midway_x_tile, bottom_y_tile},
 	}
+
+	// os.exit(0)
 }
 
 run :: proc() {
