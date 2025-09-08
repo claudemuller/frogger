@@ -1,12 +1,12 @@
 package game
 
+import "../input"
+import "core:encoding/json"
 import "core:fmt"
 import "core:math"
-import "core:encoding/json"
 import "core:os"
 import "core:strconv"
 import "core:strings"
-import "../input"
 import rl "vendor:raylib"
 
 NUM_TILES_IN_ROW :: 28
@@ -22,10 +22,12 @@ WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 
 PLAYER_SPEED :: 5
 
+Vec2 :: [2]f32
+
 Entity :: struct {
-	pos: [2]f32,
+	pos:     Vec2,
 	tilepos: [2]u8,
-	vel: [2]f32,
+	vel:     Vec2,
 }
 
 Memory :: struct {
@@ -40,7 +42,7 @@ Memory :: struct {
 gmem: Memory
 
 Level :: struct {
-	tiles: []u8,
+	tiles: [NUM_TILES]u8,
 }
 
 new :: proc(win_name: cstring) -> ^Memory {
@@ -61,7 +63,7 @@ init :: proc(win_name: cstring) {
 }
 
 setup :: proc() {
-	jsonData, ok := os.read_entire_file("data/level1.json");
+	jsonData, ok := os.read_entire_file("data/level1.json")
 	if !ok {
 		fmt.println("error reading file")
 		return
@@ -73,10 +75,10 @@ setup :: proc() {
 	}
 	Data :: struct {
 		enemies: []RawEntity,
-		tiles: []u8,
+		tiles:   [NUM_TILES]u8,
 	}
 
-	d : Data
+	d: Data
 	err := json.unmarshal(jsonData, &d)
 	if err != nil {
 		fmt.printf("%v\n", err)
@@ -86,57 +88,36 @@ setup :: proc() {
 	gmem.levels[0].tiles = d.tiles
 
 	gmem.enemies = make([]Entity, 6)
-	gmem.enemies[0] = Entity{
-		pos = {
-			8 * TILE_SIZE,
-			3 * TILE_SIZE,
-		},
+	gmem.enemies[0] = Entity {
+		pos = {8 * TILE_SIZE, 3 * TILE_SIZE},
 		vel = {1.23, 0},
 	}
-	gmem.enemies[1] = Entity{
-		pos = {
-			(NUM_TILES_IN_ROW-3) * TILE_SIZE,
-			4 * TILE_SIZE,
-		},
+	gmem.enemies[1] = Entity {
+		pos = {(NUM_TILES_IN_ROW - 3) * TILE_SIZE, 4 * TILE_SIZE},
 		vel = {-1.3, 0},
 	}
-	gmem.enemies[2] = Entity{
-		pos = {
-			2 * TILE_SIZE,
-			7 * TILE_SIZE,
-		},
+	gmem.enemies[2] = Entity {
+		pos = {2 * TILE_SIZE, 7 * TILE_SIZE},
 		vel = {1.1, 0},
 	}
-	gmem.enemies[3] = Entity{
-		pos = {
-			(NUM_TILES_IN_ROW-10) * TILE_SIZE,
-			8 * TILE_SIZE,
-		},
+	gmem.enemies[3] = Entity {
+		pos = {(NUM_TILES_IN_ROW - 10) * TILE_SIZE, 8 * TILE_SIZE},
 		vel = {-1.1, 0},
 	}
-	gmem.enemies[4] = Entity{
-		pos = {
-			16 * TILE_SIZE,
-			11 * TILE_SIZE,
-		},
+	gmem.enemies[4] = Entity {
+		pos = {16 * TILE_SIZE, 11 * TILE_SIZE},
 		vel = {1.3, 0},
 	}
-	gmem.enemies[5] = Entity{
-		pos = {
-			(NUM_TILES_IN_ROW-2) * TILE_SIZE,
-			12 * TILE_SIZE,
-		},
+	gmem.enemies[5] = Entity {
+		pos = {(NUM_TILES_IN_ROW - 2) * TILE_SIZE, 12 * TILE_SIZE},
 		vel = {-1.23, 0},
 	}
 
 
-	midway_x_tile := u8(NUM_TILES_IN_ROW*0.5)
+	midway_x_tile := u8(NUM_TILES_IN_ROW * 0.5)
 	bottom_y_tile := u8(NUM_TILES_IN_COL)
-	gmem.player = Entity{
-		pos = {
-			f32(midway_x_tile)*TILE_SIZE,
-			f32(bottom_y_tile)*TILE_SIZE,
-		},
+	gmem.player = Entity {
+		pos     = {f32(midway_x_tile) * TILE_SIZE, f32(bottom_y_tile) * TILE_SIZE},
 		tilepos = {midway_x_tile, bottom_y_tile},
 	}
 
@@ -162,19 +143,19 @@ update :: proc() {
 
 	gmem.player.pos += gmem.player.vel
 
-    if gmem.player.pos.x < 0 do gmem.player.pos.x = 0 
-    if gmem.player.pos.x > (WINDOW_WIDTH-TILE_SIZE) do gmem.player.pos.x = WINDOW_WIDTH - TILE_SIZE 
-    if gmem.player.pos.y < 0 do gmem.player.pos.y = 0 
-    if gmem.player.pos.y > (WINDOW_HEIGHT-TILE_SIZE) do gmem.player.pos.y = WINDOW_HEIGHT - TILE_SIZE 
+	if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
+	if gmem.player.pos.x > (WINDOW_WIDTH - TILE_SIZE) do gmem.player.pos.x = WINDOW_WIDTH - TILE_SIZE
+	if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
+	if gmem.player.pos.y > (WINDOW_HEIGHT - TILE_SIZE) do gmem.player.pos.y = WINDOW_HEIGHT - TILE_SIZE
 
-    gmem.player.tilepos.x = u8(gmem.player.pos.x / TILE_SIZE)
-    gmem.player.tilepos.y = u8(gmem.player.pos.y / TILE_SIZE)
+	gmem.player.tilepos.x = u8(gmem.player.pos.x / TILE_SIZE)
+	gmem.player.tilepos.y = u8(gmem.player.pos.y / TILE_SIZE)
 
 	// Update enemies
 	for &e in gmem.enemies {
 		e.pos += e.vel
-		if e.pos.x < -TILE_SIZE do e.pos.x = WINDOW_WIDTH 
-		if e.pos.x > WINDOW_WIDTH do e.pos.x = -TILE_SIZE 
+		if e.pos.x < -TILE_SIZE do e.pos.x = WINDOW_WIDTH
+		if e.pos.x > WINDOW_WIDTH do e.pos.x = -TILE_SIZE
 	}
 }
 
@@ -182,9 +163,7 @@ render :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 
-	for i := 0; i < len(gmem.levels[0].tiles); i += 1 {
-		t := gmem.levels[0].tiles[i]
-
+	for t, i in gmem.levels[0].tiles {
 		x := i32(i % NUM_TILES_IN_ROW) * TILE_SIZE
 		y := i32(i / NUM_TILES_IN_ROW) * TILE_SIZE
 
@@ -205,18 +184,16 @@ render :: proc() {
 	}
 
 	rl.DrawRectangle(
-		i32(gmem.player.tilepos.x) * TILE_SIZE, i32(gmem.player.tilepos.y) * TILE_SIZE,
+		i32(gmem.player.tilepos.x) * TILE_SIZE,
+		i32(gmem.player.tilepos.y) * TILE_SIZE,
 		// i32(gmem.player.pos.x), i32(gmem.player.pos.y),
-		TILE_SIZE, TILE_SIZE,
+		TILE_SIZE,
+		TILE_SIZE,
 		rl.BLUE,
 	)
 
 	for e in gmem.enemies {
-		rl.DrawRectangle(
-			i32(e.pos.x), i32(e.pos.y),
-			TILE_SIZE, TILE_SIZE,
-			rl.RED,
-		)
+		rl.DrawRectangle(i32(e.pos.x), i32(e.pos.y), TILE_SIZE, TILE_SIZE, rl.RED)
 	}
 
 	rl.EndDrawing()
