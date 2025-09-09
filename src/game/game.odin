@@ -23,25 +23,31 @@ WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 PLAYER_SPEED :: 5
 
 Vec2 :: [2]f32
+Vec2u :: [2]u32
 
 Entity :: struct {
-	pos:     Vec2,
-	tilepos: [2]u8,
-	vel:     Vec2,
+	pos:        Vec2,
+	tilepos:    [2]u8,
+	vel:        Vec2,
+	texture_id: string,
+	size:       Vec2u,
+	direction:  string,
 }
 
 Memory :: struct {
 	win_name:   cstring,
 	is_running: bool,
 	state:      [2]State,
+	textures:   map[string]rl.Texture2D,
 	levels:     []Level,
 	input:      input.Input,
 	player:     Entity,
-	enemies:    []Entity,
 }
 
 Level :: struct {
-	tiles: [NUM_TILES]u8,
+	enemy_speed: f32,
+	enemies:     []Entity,
+	tiles:       [NUM_TILES]u8,
 }
 
 init :: proc(win_name: cstring) -> ^Memory {
@@ -66,50 +72,18 @@ setup :: proc(gmem: ^Memory) {
 		return
 	}
 
-	RawEntity :: struct {
-		pos: []string,
-		vel: []f32,
-	}
-	Data :: struct {
-		enemies: []RawEntity,
-		tiles:   [NUM_TILES]u8,
-	}
-
-	d: Data
-	err := json.unmarshal(jsonData, &d)
-	if err != nil {
-		fmt.printf("%v\n", err)
+	gmem.levels = make([]Level, 1)
+	if err := json.unmarshal(jsonData, &gmem.levels[0]); err != nil {
+		fmt.printf("error unmarshalling json data: %v\n", err)
 		return
 	}
-	gmem.levels = make([]Level, 1)
-	gmem.levels[0].tiles = d.tiles
 
-	gmem.enemies = make([]Entity, 6)
-	gmem.enemies[0] = Entity {
-		pos = {8 * TILE_SIZE, 3 * TILE_SIZE},
-		vel = {1.23, 0},
+	truck_tex_name := cstring("res/semi-tractor.png")
+	gmem.textures["semi-tractor"] = rl.LoadTexture(truck_tex_name)
+	if gmem.textures["semi-tractor"].id == 0 {
+		fmt.printf("error loading texture: %s", truck_tex_name)
+		os.exit(1)
 	}
-	gmem.enemies[1] = Entity {
-		pos = {(NUM_TILES_IN_ROW - 3) * TILE_SIZE, 4 * TILE_SIZE},
-		vel = {-1.3, 0},
-	}
-	gmem.enemies[2] = Entity {
-		pos = {2 * TILE_SIZE, 7 * TILE_SIZE},
-		vel = {1.1, 0},
-	}
-	gmem.enemies[3] = Entity {
-		pos = {(NUM_TILES_IN_ROW - 10) * TILE_SIZE, 8 * TILE_SIZE},
-		vel = {-1.1, 0},
-	}
-	gmem.enemies[4] = Entity {
-		pos = {16 * TILE_SIZE, 11 * TILE_SIZE},
-		vel = {1.3, 0},
-	}
-	gmem.enemies[5] = Entity {
-		pos = {(NUM_TILES_IN_ROW - 2) * TILE_SIZE, 12 * TILE_SIZE},
-		vel = {-1.23, 0},
-	}
-
 
 	midway_x_tile := u8(NUM_TILES_IN_ROW * 0.5)
 	bottom_y_tile := u8(NUM_TILES_IN_COL)
@@ -117,8 +91,6 @@ setup :: proc(gmem: ^Memory) {
 		pos     = {f32(midway_x_tile) * TILE_SIZE, f32(bottom_y_tile) * TILE_SIZE},
 		tilepos = {midway_x_tile, bottom_y_tile},
 	}
-
-	// os.exit(0)
 }
 
 run :: proc(gmem: ^Memory) {
@@ -149,7 +121,7 @@ update :: proc(gmem: ^Memory) {
 	gmem.player.tilepos.y = u8(gmem.player.pos.y / TILE_SIZE)
 
 	// Update enemies
-	for &e in gmem.enemies {
+	for &e in gmem.levels[0].enemies {
 		e.pos += e.vel
 		if e.pos.x < -TILE_SIZE do e.pos.x = WINDOW_WIDTH
 		if e.pos.x > WINDOW_WIDTH do e.pos.x = -TILE_SIZE
@@ -189,8 +161,39 @@ render :: proc(gmem: ^Memory) {
 		rl.BLUE,
 	)
 
-	for e in gmem.enemies {
-		rl.DrawRectangle(i32(e.pos.x), i32(e.pos.y), TILE_SIZE, TILE_SIZE, rl.RED)
+	for e in gmem.levels[0].enemies {
+		src := rl.Rectangle {
+			x      = 0,
+			y      = 0,
+			width  = f32(e.size[1]),
+			height = f32(e.size[0]),
+		}
+		if e.direction == "ltr" {
+			src.width *= -1
+		}
+		dest := rl.Rectangle {
+			x      = e.pos.x,
+			y      = e.pos.y,
+			width  = f32(e.size[1]) * SCALE,
+			height = f32(e.size[0]) * SCALE,
+		}
+
+		fmt.printf("%v\n%v\n\n", src, dest)
+
+		tex, ok := gmem.textures[e.texture_id]
+		if !ok {
+			fmt.printf("texture not found: %s\n", e.texture_id)
+		}
+
+		rl.DrawTexturePro(tex, src, dest, {0, 0}, 0, rl.WHITE)
+		rl.DrawRectangleLines(
+			i32(e.pos.x),
+			i32(e.pos.y),
+			i32(e.size[1] * 2),
+			i32(e.size[0] * 2),
+			rl.GRAY,
+		)
+		// rl.DrawRectangle(i32(e.pos.x), i32(e.pos.y), TILE_SIZE, TILE_SIZE, rl.RED)
 	}
 
 	rl.EndDrawing()
