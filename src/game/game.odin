@@ -9,6 +9,8 @@ import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
 
+HAS_LEVEL_DEBUG :: #config(DEBUG, false)
+
 NUM_TILES_IN_ROW :: 28
 NUM_TILES_IN_COL :: 16
 NUM_TILES :: NUM_TILES_IN_COL * NUM_TILES_IN_ROW
@@ -78,18 +80,24 @@ setup :: proc(gmem: ^Memory) {
 		return
 	}
 
-	truck_tex_name := cstring("res/semi-tractor.png")
-	gmem.textures["semi-tractor"] = rl.LoadTexture(truck_tex_name)
-	if gmem.textures["semi-tractor"].id == 0 {
-		fmt.printf("error loading texture: %s", truck_tex_name)
-		os.exit(1)
-	}
+	load_tex(&gmem.textures, "semi-tractor")
+	load_tex(&gmem.textures, "sedan")
+	load_tex(&gmem.textures, "tiles")
 
 	midway_x_tile := u8(NUM_TILES_IN_ROW * 0.5)
 	bottom_y_tile := u8(NUM_TILES_IN_COL)
 	gmem.player = Entity {
 		pos     = {f32(midway_x_tile) * TILE_SIZE, f32(bottom_y_tile) * TILE_SIZE},
 		tilepos = {midway_x_tile, bottom_y_tile},
+	}
+}
+
+load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
+	name := strings.concatenate({"res/", n, ".png"})
+	texs[n] = rl.LoadTexture(strings.clone_to_cstring(name))
+	if texs[n].id == 0 {
+		fmt.printf("error loading texture: %s", name)
+		os.exit(1)
 	}
 }
 
@@ -133,23 +141,50 @@ render :: proc(gmem: ^Memory) {
 	rl.ClearBackground(rl.BLACK)
 
 	for t, i in gmem.levels[0].tiles {
-		x := i32(i % NUM_TILES_IN_ROW) * TILE_SIZE
-		y := i32(i / NUM_TILES_IN_ROW) * TILE_SIZE
+		x := f32(i % NUM_TILES_IN_ROW) * TILE_SIZE
+		y := f32(i / NUM_TILES_IN_ROW) * TILE_SIZE
 
-		colour := rl.GRAY
+		src := rl.Rectangle {
+			width  = TILE_SIZE,
+			height = TILE_SIZE,
+		}
+		dest := rl.Rectangle {
+			x      = x,
+			y      = y,
+			width  = TILE_SIZE * SCALE,
+			height = TILE_SIZE * SCALE,
+		}
 
-		if t == 0 {
-			colour = rl.GREEN
-		}
-		if t == 1 {
-			colour = rl.LIGHTGRAY
-		}
-		if t == 2 {
-			colour = rl.BLACK
+		switch t {
+		// Sidewalk
+		case 0:
+			src.x = 32
+			src.y = 0
+		case 1:
+			src.x = 32
+			src.y = 0
+			src.height *= -1
+
+		// Grass
+		case 2:
+			src.x = 64
+			src.y = 0
+			src.height *= -1
+		case 3:
+			src.x = 64
+			src.y = 0
+
+		// Road
+		case 4:
+			src.x = 0
+			src.y = 0
+		case 5:
+			src.x = 0
+			src.y = 0
 		}
 
-		rl.DrawRectangle(x, y, TILE_SIZE, TILE_SIZE, colour)
-		rl.DrawRectangleLines(x, y, TILE_SIZE, TILE_SIZE, rl.GRAY)
+		rl.DrawTexturePro(gmem.textures["tiles"], src, dest, {0, 0}, 0, rl.WHITE)
+		// rl.DrawRectangleLines(x, y, TILE_SIZE, TILE_SIZE, rl.GRAY)
 	}
 
 	rl.DrawRectangle(
@@ -178,21 +213,22 @@ render :: proc(gmem: ^Memory) {
 			height = f32(e.size[0]) * SCALE,
 		}
 
-		fmt.printf("%v\n%v\n\n", src, dest)
-
 		tex, ok := gmem.textures[e.texture_id]
 		if !ok {
 			fmt.printf("texture not found: %s\n", e.texture_id)
 		}
 
 		rl.DrawTexturePro(tex, src, dest, {0, 0}, 0, rl.WHITE)
-		rl.DrawRectangleLines(
-			i32(e.pos.x),
-			i32(e.pos.y),
-			i32(e.size[1] * 2),
-			i32(e.size[0] * 2),
-			rl.GRAY,
-		)
+
+		when HAS_LEVEL_DEBUG {
+			rl.DrawRectangleLines(
+				i32(e.pos.x),
+				i32(e.pos.y),
+				i32(e.size[1] * 2),
+				i32(e.size[0] * 2),
+				rl.RED,
+			)
+		}
 		// rl.DrawRectangle(i32(e.pos.x), i32(e.pos.y), TILE_SIZE, TILE_SIZE, rl.RED)
 	}
 
