@@ -81,7 +81,12 @@ setup :: proc(gmem: ^Memory) {
 	}
 
 	load_tex(&gmem.textures, "semi-tractor")
-	load_tex(&gmem.textures, "sedan")
+	load_tex(&gmem.textures, "sedan-grey")
+	load_tex(&gmem.textures, "sedan-purple")
+	load_tex(&gmem.textures, "sedan-green")
+	load_tex(&gmem.textures, "hatch-back-green")
+	load_tex(&gmem.textures, "hatch-back-yellow")
+	load_tex(&gmem.textures, "hatch-back-blue")
 	load_tex(&gmem.textures, "tiles")
 
 	midway_x_tile := u8(NUM_TILES_IN_ROW * 0.5)

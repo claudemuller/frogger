@@ -15,7 +15,23 @@
 				34
 			],
 			"direction": "ltr",
-			"texture_id": "sedan"
+			"texture_id": "hatch-back-blue"
+		},
+		{
+			"pos": [
+				352,
+				192
+			],
+			"vel": [
+				1.23,
+				0
+			],
+			"size": [
+				24,
+				34
+			],
+			"direction": "ltr",
+			"texture_id": "hatch-back-green"
 		},
 		{
 			"pos": [
@@ -27,11 +43,11 @@
 				0
 			],
 			"size": [
-				32,
-				64
+				24,
+				34
 			],
 			"direction": "rtl",
-			"texture_id": "semi-tractor"
+			"texture_id": "sedan-grey"
 		},
 		{
 			"pos": [
@@ -83,6 +99,22 @@
 		},
 		{
 			"pos": [
+				3184,
+				704
+			],
+			"vel": [
+				1.23,
+				0
+			],
+			"size": [
+				24,
+				34
+			],
+			"direction": "ltr",
+			"texture_id": "hatch-back-yellow"
+		},
+		{
+			"pos": [
 				3584,
 				768
 			],
@@ -96,7 +128,7 @@
 			],
 			"direction": "rtl",
 			"texture_id": "semi-tractor"
-		}
+		},
 	],
 	"tiles": [
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
