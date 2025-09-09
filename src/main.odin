@@ -18,8 +18,8 @@ main :: proc() {
 		mem.tracking_allocator_destroy(&track)
 	}
 
-	g := game.new("Frogger")
-	defer game.destroy()
+	g := game.init("Frogger")
+	defer game.destroy(g)
 
-	game.run()
+	game.run(g)
 }

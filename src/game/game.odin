@@ -39,30 +39,27 @@ Memory :: struct {
 	player:     Entity,
 	enemies:    []Entity,
 }
-gmem: Memory
 
 Level :: struct {
 	tiles: [NUM_TILES]u8,
 }
 
-new :: proc(win_name: cstring) -> ^Memory {
-	init(win_name)
-	return &gmem
-}
-
-init :: proc(win_name: cstring) {
+init :: proc(win_name: cstring) -> ^Memory {
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, cstring(win_name))
 
 	rl.SetTargetFPS(60)
 	rl.SetExitKey(.ESCAPE)
 
-	setup()
+	gmem := new(Memory)
+	setup(gmem)
 
 	gmem.is_running = true
-	push_state(&gmem, .START_UP)
+	push_state(gmem, .START_UP)
+
+	return gmem
 }
 
-setup :: proc() {
+setup :: proc(gmem: ^Memory) {
 	jsonData, ok := os.read_entire_file("data/level1.json")
 	if !ok {
 		fmt.println("error reading file")
@@ -124,15 +121,15 @@ setup :: proc() {
 	// os.exit(0)
 }
 
-run :: proc() {
+run :: proc(gmem: ^Memory) {
 	for !rl.WindowShouldClose() {
 		input.process(&gmem.input)
-		update()
-		render()
+		update(gmem)
+		render(gmem)
 	}
 }
 
-update :: proc() {
+update :: proc(gmem: ^Memory) {
 	// Update player
 	gmem.player.vel = 0.0
 
@@ -159,7 +156,7 @@ update :: proc() {
 	}
 }
 
-render :: proc() {
+render :: proc(gmem: ^Memory) {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 
@@ -199,7 +196,8 @@ render :: proc() {
 	rl.EndDrawing()
 }
 
-destroy :: proc() {
+destroy :: proc(gmem: ^Memory) {
+	free(gmem)
 	rl.CloseWindow()
 }
 
@@ -211,15 +209,15 @@ State :: enum {
 	EXIT,
 }
 
-get_state :: proc(game_mem: Memory) -> State {
+get_state :: proc(gmem: ^Memory) -> State {
 	return gmem.state[0]
 }
 
-get_prev_state :: proc(game_mem: Memory) -> State {
+get_prev_state :: proc(gmem: ^Memory) -> State {
 	return gmem.state[1]
 }
 
-push_state :: proc(game_mem: ^Memory, state: State) {
+push_state :: proc(gmem: ^Memory, state: State) {
 	temp_state := gmem.state[0]
 	gmem.state[0] = state
 	gmem.state[1] = temp_state
