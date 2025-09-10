@@ -13,8 +13,7 @@ import rl "vendor:raylib"
 
 HAS_LEVEL_DEBUG :: #config(DEBUG, false)
 
-
-PLAYER_SPEED :: 5
+PLAYER_SPEED :: 25
 
 init :: proc(win_name: cstring) -> ^common.Memory {
 	rl.InitWindow(common.WINDOW_WIDTH, common.WINDOW_HEIGHT, cstring(win_name))
@@ -47,6 +46,7 @@ setup :: proc(gmem: ^common.Memory) {
 
 	ui.setup(gmem)
 
+	// Load texture not found texture
 	redpx := rl.GenImageColor(1, 1, rl.RED)
 	redtex := rl.LoadTextureFromImage(redpx)
 	rl.UnloadImage(redpx)
@@ -124,7 +124,7 @@ update :: proc(gmem: ^common.Memory) {
 		gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
 		gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
 
-		playerRect := rl.Rectangle {
+		player_rect := rl.Rectangle {
 			x      = gmem.player.pos.x,
 			y      = gmem.player.pos.y,
 			width  = f32(gmem.player.size[0]),
@@ -132,20 +132,47 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 		// Update enemies
-		for &e in getCurrentLevel(gmem).enemies {
+		for &e, i in getCurrentLevel(gmem).enemies {
 			e.pos += e.vel
 			if e.pos.x < -common.TILE_SIZE do e.pos.x = common.WINDOW_WIDTH
 			if e.pos.x > common.WINDOW_WIDTH do e.pos.x = -common.TILE_SIZE
 
-			eRect := rl.Rectangle {
+			e_rect := rl.Rectangle {
 				x      = e.pos.x,
 				y      = e.pos.y,
-				width  = f32(e.size[0]),
-				height = f32(e.size[1]),
+				width  = f32(e.collider[1] * common.SCALE),
+				height = f32(e.collider[0] * common.SCALE),
 			}
 
-			if rl.CheckCollisionRecs(playerRect, eRect) {
+			if rl.CheckCollisionRecs(player_rect, e_rect) {
 				fmt.println("collision")
+			}
+
+			if e.timer > 0 {
+				e.timer -= rl.GetFrameTime()
+			}
+			if e.timer <= 0 && e.backoff {
+				e.vel.x *= 2.0
+				e.backoff = false
+			}
+
+			for &e_other, j in getCurrentLevel(gmem).enemies {
+				if i == j || e.pos.y != e_other.pos.y {
+					continue
+				}
+
+				e_other_rect := rl.Rectangle {
+					x      = e_other.pos.x,
+					y      = e_other.pos.y,
+					width  = f32(e_other.collider[1] * common.SCALE),
+					height = f32(e_other.collider[0] * common.SCALE),
+				}
+
+				if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+					e.vel.x *= 0.5
+					e.timer = e.backoff_duration
+					e.backoff = true
+				}
 			}
 		}
 
@@ -306,8 +333,8 @@ render :: proc(gmem: ^common.Memory) {
 				rl.DrawRectangleLines(
 					i32(e.pos.x),
 					i32(e.pos.y),
-					i32(e.size[1] * common.SCALE),
-					i32(e.size[0] * common.SCALE),
+					i32(e.collider[1] * common.SCALE),
+					i32(e.collider[0] * common.SCALE),
 					rl.RED,
 				)
 			}

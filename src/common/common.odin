@@ -21,12 +21,16 @@ Vec2 :: [2]f32
 Vec2u :: [2]u32
 
 Entity :: struct {
-	pos:        Vec2,
-	tilepos:    [2]u8,
-	vel:        Vec2,
-	texture_id: string,
-	size:       Vec2u,
-	direction:  string,
+	pos:              Vec2,
+	tilepos:          [2]u8,
+	vel:              Vec2,
+	texture_id:       string,
+	size:             Vec2u,
+	collider:         Vec2u,
+	direction:        string,
+	timer:		      f32,
+	backoff:          bool,
+	backoff_duration: f32,
 }
 
 Level :: struct {
