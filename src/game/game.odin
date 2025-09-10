@@ -1,6 +1,8 @@
 package game
 
+import "../common"
 import "../input"
+import "../ui"
 import "core:encoding/json"
 import "core:fmt"
 import "core:math"
@@ -11,54 +13,16 @@ import rl "vendor:raylib"
 
 HAS_LEVEL_DEBUG :: #config(DEBUG, false)
 
-NUM_TILES_IN_ROW :: 28
-NUM_TILES_IN_COL :: 16
-NUM_TILES :: NUM_TILES_IN_COL * NUM_TILES_IN_ROW
-
-SCALE :: 2
-SRC_TILE_SIZE :: 32
-TILE_SIZE :: SRC_TILE_SIZE * SCALE
-
-WINDOW_WIDTH :: NUM_TILES_IN_ROW * TILE_SIZE
-WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 
 PLAYER_SPEED :: 5
 
-Vec2 :: [2]f32
-Vec2u :: [2]u32
-
-Entity :: struct {
-	pos:        Vec2,
-	tilepos:    [2]u8,
-	vel:        Vec2,
-	texture_id: string,
-	size:       Vec2u,
-	direction:  string,
-}
-
-Memory :: struct {
-	win_name:   cstring,
-	is_running: bool,
-	state:      [2]State,
-	textures:   map[string]rl.Texture2D,
-	levels:     []Level,
-	input:      input.Input,
-	player:     Entity,
-}
-
-Level :: struct {
-	enemy_speed: f32,
-	enemies:     []Entity,
-	tiles:       [NUM_TILES]u8,
-}
-
-init :: proc(win_name: cstring) -> ^Memory {
-	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, cstring(win_name))
+init :: proc(win_name: cstring) -> ^common.Memory {
+	rl.InitWindow(common.WINDOW_WIDTH, common.WINDOW_HEIGHT, cstring(win_name))
 
 	rl.SetTargetFPS(60)
 	rl.SetExitKey(.ESCAPE)
 
-	gmem := new(Memory)
+	gmem := new(common.Memory)
 	setup(gmem)
 
 	gmem.is_running = true
@@ -67,46 +31,44 @@ init :: proc(win_name: cstring) -> ^Memory {
 	return gmem
 }
 
-setup :: proc(gmem: ^Memory) {
+setup :: proc(gmem: ^common.Memory) {
 	jsonData, ok := os.read_entire_file("data/level1.json")
 	if !ok {
 		fmt.println("error reading file")
 		return
 	}
 
-	gmem.levels = make([]Level, 1)
+	gmem.levels = make([]common.Level, 1)
 	if err := json.unmarshal(jsonData, &gmem.levels[0]); err != nil {
 		fmt.printf("error unmarshalling json data: %v\n", err)
 		return
 	}
 
-	load_tex(&gmem.textures, "semi-tractor")
-	load_tex(&gmem.textures, "sedan-grey")
-	load_tex(&gmem.textures, "sedan-purple")
-	load_tex(&gmem.textures, "sedan-green")
-	load_tex(&gmem.textures, "hatch-back-green")
-	load_tex(&gmem.textures, "hatch-back-yellow")
-	load_tex(&gmem.textures, "hatch-back-blue")
-	load_tex(&gmem.textures, "tiles")
+	ui.setup(gmem)
 
-	midway_x_tile := u8(NUM_TILES_IN_ROW * 0.5)
-	bottom_y_tile := u8(NUM_TILES_IN_COL)
-	gmem.player = Entity {
-		pos     = {f32(midway_x_tile) * TILE_SIZE, f32(bottom_y_tile) * TILE_SIZE},
+	common.load_tex(&gmem.textures, "semi-tractor")
+	common.load_tex(&gmem.textures, "sedan-grey")
+	common.load_tex(&gmem.textures, "sedan-purple")
+	common.load_tex(&gmem.textures, "sedan-green")
+	common.load_tex(&gmem.textures, "hatch-back-green")
+	common.load_tex(&gmem.textures, "hatch-back-yellow")
+	common.load_tex(&gmem.textures, "hatch-back-blue")
+	common.load_tex(&gmem.textures, "tiles")
+
+	midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
+	bottom_y_tile := u8(common.NUM_TILES_IN_COL)
+	gmem.player = common.Entity {
+		pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
 		tilepos = {midway_x_tile, bottom_y_tile},
 	}
 }
 
-load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
-	name := strings.concatenate({"res/", n, ".png"})
-	texs[n] = rl.LoadTexture(strings.clone_to_cstring(name))
-	if texs[n].id == 0 {
-		fmt.printf("error loading texture: %s", name)
-		os.exit(1)
-	}
+getCurrentLevel :: proc(gmem: ^common.Memory) -> ^common.Level {
+	return &gmem.levels[gmem.currentLevel]
 }
 
-run :: proc(gmem: ^Memory) {
+
+run :: proc(gmem: ^common.Memory) {
 	for !rl.WindowShouldClose() {
 		input.process(&gmem.input)
 		update(gmem)
@@ -114,7 +76,12 @@ run :: proc(gmem: ^Memory) {
 	}
 }
 
-update :: proc(gmem: ^Memory) {
+update :: proc(gmem: ^common.Memory) {
+	// Update UI
+	if ui.update(gmem) {
+		return
+	}
+
 	// Update player
 	gmem.player.vel = 0.0
 
@@ -126,38 +93,57 @@ update :: proc(gmem: ^Memory) {
 	gmem.player.pos += gmem.player.vel
 
 	if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
-	if gmem.player.pos.x > (WINDOW_WIDTH - TILE_SIZE) do gmem.player.pos.x = WINDOW_WIDTH - TILE_SIZE
+	if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
 	if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
-	if gmem.player.pos.y > (WINDOW_HEIGHT - TILE_SIZE) do gmem.player.pos.y = WINDOW_HEIGHT - TILE_SIZE
+	if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
 
-	gmem.player.tilepos.x = u8(gmem.player.pos.x / TILE_SIZE)
-	gmem.player.tilepos.y = u8(gmem.player.pos.y / TILE_SIZE)
+	gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
+	gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
+
+	playerRect := rl.Rectangle {
+		x      = gmem.player.pos.x,
+		y      = gmem.player.pos.y,
+		width  = f32(gmem.player.size[0]),
+		height = f32(gmem.player.size[1]),
+	}
 
 	// Update enemies
-	for &e in gmem.levels[0].enemies {
+	for &e in getCurrentLevel(gmem).enemies {
 		e.pos += e.vel
-		if e.pos.x < -TILE_SIZE do e.pos.x = WINDOW_WIDTH
-		if e.pos.x > WINDOW_WIDTH do e.pos.x = -TILE_SIZE
+		if e.pos.x < -common.TILE_SIZE do e.pos.x = common.WINDOW_WIDTH
+		if e.pos.x > common.WINDOW_WIDTH do e.pos.x = -common.TILE_SIZE
+
+		eRect := rl.Rectangle {
+			x      = e.pos.x,
+			y      = e.pos.y,
+			width  = f32(e.size[0]),
+			height = f32(e.size[1]),
+		}
+
+		if rl.CheckCollisionRecs(playerRect, eRect) {
+			fmt.println("collision")
+		}
 	}
 }
 
-render :: proc(gmem: ^Memory) {
+render :: proc(gmem: ^common.Memory) {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 
-	for t, i in gmem.levels[0].tiles {
-		x := f32(i % NUM_TILES_IN_ROW) * TILE_SIZE
-		y := f32(i / NUM_TILES_IN_ROW) * TILE_SIZE
+	// Render tilemap
+	for t, i in getCurrentLevel(gmem).tiles {
+		x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+		y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE
 
 		src := rl.Rectangle {
-			width  = TILE_SIZE,
-			height = TILE_SIZE,
+			width  = common.TILE_SIZE,
+			height = common.TILE_SIZE,
 		}
 		dest := rl.Rectangle {
 			x      = x,
 			y      = y,
-			width  = TILE_SIZE * SCALE,
-			height = TILE_SIZE * SCALE,
+			width  = common.TILE_SIZE * common.SCALE,
+			height = common.TILE_SIZE * common.SCALE,
 		}
 
 		switch t {
@@ -189,19 +175,29 @@ render :: proc(gmem: ^Memory) {
 		}
 
 		rl.DrawTexturePro(gmem.textures["tiles"], src, dest, {0, 0}, 0, rl.WHITE)
-		// rl.DrawRectangleLines(x, y, TILE_SIZE, TILE_SIZE, rl.GRAY)
 	}
 
+	// Render player
 	rl.DrawRectangle(
-		i32(gmem.player.tilepos.x) * TILE_SIZE,
-		i32(gmem.player.tilepos.y) * TILE_SIZE,
+		i32(gmem.player.tilepos.x) * common.TILE_SIZE,
+		i32(gmem.player.tilepos.y) * common.TILE_SIZE,
 		// i32(gmem.player.pos.x), i32(gmem.player.pos.y),
-		TILE_SIZE,
-		TILE_SIZE,
+		common.TILE_SIZE,
+		common.TILE_SIZE,
 		rl.BLUE,
 	)
+	when HAS_LEVEL_DEBUG {
+		rl.DrawRectangleLines(
+			i32(gmem.player.pos.x),
+			i32(gmem.player.pos.y),
+			i32(gmem.player.size[1] * SCALE),
+			i32(gmem.player.size[0] * SCALE),
+			rl.RED,
+		)
+	}
 
-	for e in gmem.levels[0].enemies {
+	// Render enemies
+	for e in getCurrentLevel(gmem).enemies {
 		src := rl.Rectangle {
 			x      = 0,
 			y      = 0,
@@ -214,8 +210,8 @@ render :: proc(gmem: ^Memory) {
 		dest := rl.Rectangle {
 			x      = e.pos.x,
 			y      = e.pos.y,
-			width  = f32(e.size[1]) * SCALE,
-			height = f32(e.size[0]) * SCALE,
+			width  = f32(e.size[1]) * common.SCALE,
+			height = f32(e.size[0]) * common.SCALE,
 		}
 
 		tex, ok := gmem.textures[e.texture_id]
@@ -229,39 +225,32 @@ render :: proc(gmem: ^Memory) {
 			rl.DrawRectangleLines(
 				i32(e.pos.x),
 				i32(e.pos.y),
-				i32(e.size[1] * 2),
-				i32(e.size[0] * 2),
+				i32(e.size[1] * SCALE),
+				i32(e.size[0] * SCALE),
 				rl.RED,
 			)
 		}
-		// rl.DrawRectangle(i32(e.pos.x), i32(e.pos.y), TILE_SIZE, TILE_SIZE, rl.RED)
 	}
+
+	// Render UI
+	ui.render(gmem)
 
 	rl.EndDrawing()
 }
 
-destroy :: proc(gmem: ^Memory) {
-	free(gmem)
+destroy :: proc() {
 	rl.CloseWindow()
 }
 
-State :: enum {
-	START_UP,
-	MAIN_MENU,
-	LEVEL1,
-	GAME_OVER,
-	EXIT,
-}
-
-get_state :: proc(gmem: ^Memory) -> State {
+get_state :: proc(gmem: ^common.Memory) -> common.State {
 	return gmem.state[0]
 }
 
-get_prev_state :: proc(gmem: ^Memory) -> State {
+get_prev_state :: proc(gmem: ^common.Memory) -> common.State {
 	return gmem.state[1]
 }
 
-push_state :: proc(gmem: ^Memory, state: State) {
+push_state :: proc(gmem: ^common.Memory, state: common.State) {
 	temp_state := gmem.state[0]
 	gmem.state[0] = state
 	gmem.state[1] = temp_state
