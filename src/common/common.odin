@@ -81,7 +81,7 @@ load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
 	}
 }
 
-get_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) -> rl.Texture2D {
+get_tex :: proc(texs: map[string]rl.Texture2D, n: string) -> rl.Texture2D {
 	t, ok := texs[n]
 	if !ok {
 		fmt.printf("failed to get texture: %s\n", n)

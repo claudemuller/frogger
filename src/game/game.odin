@@ -46,12 +46,6 @@ setup :: proc(gmem: ^common.Memory) {
 
 	ui.setup(gmem)
 
-	// Load texture not found texture
-	redpx := rl.GenImageColor(1, 1, rl.RED)
-	redtex := rl.LoadTextureFromImage(redpx)
-	rl.UnloadImage(redpx)
-	gmem.textures["NO_TEXTURE"] = redtex
-
 	common.load_tex(&gmem.textures, "semi-tractor")
 	common.load_tex(&gmem.textures, "sedan-grey")
 	common.load_tex(&gmem.textures, "sedan-purple")
@@ -186,13 +180,7 @@ render :: proc(gmem: ^common.Memory) {
 
 	switch common.get_state(gmem) {
 	case .SPLASH:
-		s := f32(287 * 0.5)
-		rl.DrawTexture(
-			common.get_tex(&gmem.textures, "dxtrs-games"),
-			i32(common.WINDOW_WIDTH * 0.5 - s),
-			i32(common.WINDOW_HEIGHT * 0.5 - s),
-			rl.WHITE,
-		)
+		ui.render_splash(gmem)
 
 	case .MAIN_MENU:
 		win_w := f32(600)
@@ -268,7 +256,7 @@ render :: proc(gmem: ^common.Memory) {
 			}
 
 			rl.DrawTexturePro(
-				common.get_tex(&gmem.textures, "tiles"),
+				common.get_tex(gmem.textures, "tiles"),
 				src,
 				dest,
 				{0, 0},
@@ -279,7 +267,7 @@ render :: proc(gmem: ^common.Memory) {
 
 		// Render player
 		rl.DrawTexturePro(
-			common.get_tex(&gmem.textures, "player"),
+			common.get_tex(gmem.textures, "player"),
 			{},
 			{
 				x = f32(gmem.player.pos.x),
@@ -321,7 +309,7 @@ render :: proc(gmem: ^common.Memory) {
 			}
 
 			rl.DrawTexturePro(
-				common.get_tex(&gmem.textures, e.texture_id),
+				common.get_tex(gmem.textures, e.texture_id),
 				src,
 				dest,
 				{0, 0},

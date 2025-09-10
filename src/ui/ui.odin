@@ -20,7 +20,14 @@ Window :: struct {
 }
 
 setup :: proc(gmem: ^common.Memory) {
+	// Load texture not found texture
+	redpx := rl.GenImageColor(1, 1, rl.RED)
+	redtex := rl.LoadTextureFromImage(redpx)
+	rl.UnloadImage(redpx)
+	gmem.textures["NO_TEXTURE"] = redtex
+
 	common.load_tex(&gmem.textures, "dxtrs-games")
+	// common.load_tex(&gmem.textures, "dxtrs-games-gif")
 	common.load_tex(&gmem.textures, WIN_DECORATION)
 	common.load_tex(&gmem.textures, BUTTON_GREEN)
 }
@@ -33,6 +40,22 @@ update :: proc(gmem: ^common.Memory) -> bool {
 render :: proc(gmem: ^common.Memory) {
 	// drawWin(gmem, 100, 100, 400, 200)
 	// drawButton(gmem, "testing", 400-50, 200-10)
+}
+
+render_splash :: proc(gmem: ^common.Memory) {
+	s := f32(287 * 0.5)
+	rl.DrawTexture(
+		common.get_tex(gmem.textures, "dxtrs-games"),
+		i32(common.WINDOW_WIDTH * 0.5 - s),
+		i32(common.WINDOW_HEIGHT * 0.5 - s),
+		rl.WHITE,
+	)
+	rl.DrawTexture(
+		common.get_tex(gmem.textures, "dxtrs-games-gif"),
+		i32(common.WINDOW_WIDTH * 0.5 - s),
+		i32(common.WINDOW_HEIGHT * 0.5),
+		rl.WHITE,
+	)
 }
 
 drawWin :: proc(gmem: ^common.Memory, x, y, width, height: i32) {
