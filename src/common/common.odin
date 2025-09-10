@@ -52,7 +52,6 @@ State :: enum {
 	MAIN_MENU,
 	PLAYING,
 	GAME_OVER,
-	EXIT,
 }
 
 get_state :: proc(gmem: ^Memory) -> State {

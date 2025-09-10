@@ -150,7 +150,6 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 	case .GAME_OVER:
-	case .EXIT:
 	}
 }
 
@@ -170,15 +169,31 @@ render :: proc(gmem: ^common.Memory) {
 
 	case .MAIN_MENU:
 		win_w := f32(600)
-		win_h := f32(100)
-		ui.drawWin(
-			gmem,
-			i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5),
-			i32(common.WINDOW_HEIGHT * 0.5 - win_h * 0.5),
-			i32(win_w),
-			i32(win_h),
+		win_h := f32(140)
+		win_x := i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5)
+		win_y := i32(common.WINDOW_HEIGHT * 0.5 - win_h * 0.5)
+
+		ui.drawWin(gmem, win_x, win_y, i32(win_w), i32(win_h))
+
+		header := cstring("Frogger")
+		header_w := rl.MeasureText(header, ui.FONT_SIZE_HEADER)
+		rl.DrawText(
+			header,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(header_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER * 0.5 - 10,
+			ui.FONT_SIZE_HEADER,
+			rl.DARKGRAY,
 		)
-	// drawButton(gmem, "testing", 400-50, 200-10)
+
+		inst := cstring("Press <space> or press <left_click> to start.")
+		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
+		rl.DrawText(
+			inst,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(inst_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER + 40,
+			ui.FONT_SIZE_BODY,
+			rl.DARKGRAY,
+		)
 
 	case .PLAYING:
 		// Render tilemap
@@ -258,13 +273,6 @@ render :: proc(gmem: ^common.Memory) {
 				i32(gmem.player.size[0] * common.SCALE),
 				rl.RED,
 			)
-			fmt.printf(
-				"%v,%v,%v,%v\n",
-				i32(gmem.player.pos.x),
-				i32(gmem.player.pos.y),
-				i32(gmem.player.size[1] * common.SCALE),
-				i32(gmem.player.size[0] * common.SCALE),
-			)
 		}
 
 		// Render enemies
@@ -309,7 +317,32 @@ render :: proc(gmem: ^common.Memory) {
 		ui.render(gmem)
 
 	case .GAME_OVER:
-	case .EXIT:
+		win_w := f32(600)
+		win_h := f32(140)
+		win_x := i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5)
+		win_y := i32(common.WINDOW_HEIGHT * 0.5 - win_h * 0.5)
+
+		ui.drawWin(gmem, win_x, win_y, i32(win_w), i32(win_h))
+
+		header := cstring("Game Over")
+		header_w := rl.MeasureText(header, ui.FONT_SIZE_HEADER)
+		rl.DrawText(
+			header,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(header_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER * 0.5 - 10,
+			ui.FONT_SIZE_HEADER,
+			rl.DARKGRAY,
+		)
+
+		inst := cstring("Press <space> or press <left_click> to play again.")
+		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
+		rl.DrawText(
+			inst,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(inst_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER + 40,
+			ui.FONT_SIZE_BODY,
+			rl.DARKGRAY,
+		)
 	}
 
 	rl.EndDrawing()

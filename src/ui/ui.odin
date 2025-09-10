@@ -9,6 +9,8 @@ BUTTON_GREEN :: "button-green"
 UI_TILESIZE :: 32
 UI_HALF_TILESIZE :: 16
 FONT_SIZE_BUTTON :: 16
+FONT_SIZE_HEADER :: 48
+FONT_SIZE_BODY :: 24
 
 Window :: struct {
 	x:      i32,
