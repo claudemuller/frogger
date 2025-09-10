@@ -39,6 +39,7 @@ Memory :: struct {
 	win_name:     cstring,
 	is_running:   bool,
 	currentLevel: u8,
+	splash_timer: f32,
 	state:        [2]State,
 	textures:     map[string]rl.Texture2D,
 	levels:       []Level,
@@ -47,11 +48,25 @@ Memory :: struct {
 }
 
 State :: enum {
-	START_UP,
+	SPLASH,
 	MAIN_MENU,
-	LEVEL1,
+	PLAYING,
 	GAME_OVER,
 	EXIT,
+}
+
+get_state :: proc(gmem: ^Memory) -> State {
+	return gmem.state[0]
+}
+
+get_prev_state :: proc(gmem: ^Memory) -> State {
+	return gmem.state[1]
+}
+
+push_state :: proc(gmem: ^Memory, state: State) {
+	temp_state := gmem.state[0]
+	gmem.state[0] = state
+	gmem.state[1] = temp_state
 }
 
 load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
@@ -61,4 +76,13 @@ load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
 		fmt.printf("error loading texture: %s", name)
 		os.exit(1)
 	}
+}
+
+get_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) -> rl.Texture2D {
+	t, ok := texs[n]
+	if !ok {
+		fmt.printf("failed to get texture: %s\n", n)
+		return texs["NO_TEXTURE"]
+	}
+	return t
 }

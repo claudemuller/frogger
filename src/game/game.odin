@@ -26,7 +26,8 @@ init :: proc(win_name: cstring) -> ^common.Memory {
 	setup(gmem)
 
 	gmem.is_running = true
-	push_state(gmem, .START_UP)
+	gmem.splash_timer = 2.0
+	common.push_state(gmem, .SPLASH)
 
 	return gmem
 }
@@ -46,6 +47,11 @@ setup :: proc(gmem: ^common.Memory) {
 
 	ui.setup(gmem)
 
+	redpx := rl.GenImageColor(1, 1, rl.RED)
+	redtex := rl.LoadTextureFromImage(redpx)
+	rl.UnloadImage(redpx)
+	gmem.textures["NO_TEXTURE"] = redtex
+
 	common.load_tex(&gmem.textures, "semi-tractor")
 	common.load_tex(&gmem.textures, "sedan-grey")
 	common.load_tex(&gmem.textures, "sedan-purple")
@@ -60,6 +66,7 @@ setup :: proc(gmem: ^common.Memory) {
 	gmem.player = common.Entity {
 		pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
 		tilepos = {midway_x_tile, bottom_y_tile},
+		size    = {20, 20},
 	}
 }
 
@@ -82,47 +89,68 @@ update :: proc(gmem: ^common.Memory) {
 		return
 	}
 
-	// Update player
-	gmem.player.vel = 0.0
-
-	if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
-	if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
-	if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
-	if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
-
-	gmem.player.pos += gmem.player.vel
-
-	if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
-	if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
-	if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
-	if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
-
-	gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
-	gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
-
-	playerRect := rl.Rectangle {
-		x      = gmem.player.pos.x,
-		y      = gmem.player.pos.y,
-		width  = f32(gmem.player.size[0]),
-		height = f32(gmem.player.size[1]),
-	}
-
-	// Update enemies
-	for &e in getCurrentLevel(gmem).enemies {
-		e.pos += e.vel
-		if e.pos.x < -common.TILE_SIZE do e.pos.x = common.WINDOW_WIDTH
-		if e.pos.x > common.WINDOW_WIDTH do e.pos.x = -common.TILE_SIZE
-
-		eRect := rl.Rectangle {
-			x      = e.pos.x,
-			y      = e.pos.y,
-			width  = f32(e.size[0]),
-			height = f32(e.size[1]),
+	switch common.get_state(gmem) {
+	case .SPLASH:
+		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
+			common.push_state(gmem, .MAIN_MENU)
 		}
 
-		if rl.CheckCollisionRecs(playerRect, eRect) {
-			fmt.println("collision")
+		if gmem.splash_timer <= 0 {
+			common.push_state(gmem, .MAIN_MENU)
 		}
+		gmem.splash_timer -= rl.GetFrameTime()
+
+	case .MAIN_MENU:
+		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
+			common.push_state(gmem, .PLAYING)
+		}
+
+	case .PLAYING:
+		// Update player
+		gmem.player.vel = 0.0
+
+		if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
+		if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
+		if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
+		if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
+
+		gmem.player.pos += gmem.player.vel
+
+		if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
+		if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
+		if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
+		if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
+
+		gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
+		gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
+
+		playerRect := rl.Rectangle {
+			x      = gmem.player.pos.x,
+			y      = gmem.player.pos.y,
+			width  = f32(gmem.player.size[0]),
+			height = f32(gmem.player.size[1]),
+		}
+
+		// Update enemies
+		for &e in getCurrentLevel(gmem).enemies {
+			e.pos += e.vel
+			if e.pos.x < -common.TILE_SIZE do e.pos.x = common.WINDOW_WIDTH
+			if e.pos.x > common.WINDOW_WIDTH do e.pos.x = -common.TILE_SIZE
+
+			eRect := rl.Rectangle {
+				x      = e.pos.x,
+				y      = e.pos.y,
+				width  = f32(e.size[0]),
+				height = f32(e.size[1]),
+			}
+
+			if rl.CheckCollisionRecs(playerRect, eRect) {
+				fmt.println("collision")
+			}
+		}
+
+	case .GAME_OVER:
+	case .EXIT:
 	}
 }
 
@@ -130,128 +158,163 @@ render :: proc(gmem: ^common.Memory) {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 
-	// Render tilemap
-	for t, i in getCurrentLevel(gmem).tiles {
-		x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
-		y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+	switch common.get_state(gmem) {
+	case .SPLASH:
+		s := f32(287 * 0.5)
+		rl.DrawTexture(
+			common.get_tex(&gmem.textures, "dxtrs-games"),
+			i32(common.WINDOW_WIDTH * 0.5 - s),
+			i32(common.WINDOW_HEIGHT * 0.5 - s),
+			rl.WHITE,
+		)
 
-		src := rl.Rectangle {
-			width  = common.TILE_SIZE,
-			height = common.TILE_SIZE,
+	case .MAIN_MENU:
+		win_w := f32(600)
+		win_h := f32(100)
+		ui.drawWin(
+			gmem,
+			i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5),
+			i32(common.WINDOW_HEIGHT * 0.5 - win_h * 0.5),
+			i32(win_w),
+			i32(win_h),
+		)
+	// drawButton(gmem, "testing", 400-50, 200-10)
+
+	case .PLAYING:
+		// Render tilemap
+		for t, i in getCurrentLevel(gmem).tiles {
+			x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+			y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+
+			src := rl.Rectangle {
+				width  = common.TILE_SIZE,
+				height = common.TILE_SIZE,
+			}
+			dest := rl.Rectangle {
+				x      = x,
+				y      = y,
+				width  = common.TILE_SIZE * common.SCALE,
+				height = common.TILE_SIZE * common.SCALE,
+			}
+
+			switch t {
+			// Sidewalk
+			case 0:
+				src.x = 32
+				src.y = 0
+			case 1:
+				src.x = 32
+				src.y = 0
+				src.height *= -1
+
+			// Grass
+			case 2:
+				src.x = 64
+				src.y = 0
+				src.height *= -1
+			case 3:
+				src.x = 64
+				src.y = 0
+
+			// Road
+			case 4:
+				src.x = 0
+				src.y = 0
+			case 5:
+				src.x = 0
+				src.y = 0
+			}
+
+			rl.DrawTexturePro(
+				common.get_tex(&gmem.textures, "tiles"),
+				src,
+				dest,
+				{0, 0},
+				0,
+				rl.WHITE,
+			)
 		}
-		dest := rl.Rectangle {
-			x      = x,
-			y      = y,
-			width  = common.TILE_SIZE * common.SCALE,
-			height = common.TILE_SIZE * common.SCALE,
-		}
 
-		switch t {
-		// Sidewalk
-		case 0:
-			src.x = 32
-			src.y = 0
-		case 1:
-			src.x = 32
-			src.y = 0
-			src.height *= -1
-
-		// Grass
-		case 2:
-			src.x = 64
-			src.y = 0
-			src.height *= -1
-		case 3:
-			src.x = 64
-			src.y = 0
-
-		// Road
-		case 4:
-			src.x = 0
-			src.y = 0
-		case 5:
-			src.x = 0
-			src.y = 0
-		}
-
-		rl.DrawTexturePro(gmem.textures["tiles"], src, dest, {0, 0}, 0, rl.WHITE)
-	}
-
-	// Render player
-	rl.DrawRectangle(
-		i32(gmem.player.tilepos.x) * common.TILE_SIZE,
-		i32(gmem.player.tilepos.y) * common.TILE_SIZE,
-		// i32(gmem.player.pos.x), i32(gmem.player.pos.y),
-		common.TILE_SIZE,
-		common.TILE_SIZE,
-		rl.BLUE,
-	)
-	when HAS_LEVEL_DEBUG {
-		rl.DrawRectangleLines(
-			i32(gmem.player.pos.x),
-			i32(gmem.player.pos.y),
-			i32(gmem.player.size[1] * SCALE),
-			i32(gmem.player.size[0] * SCALE),
+		// Render player
+		rl.DrawTexturePro(
+			common.get_tex(&gmem.textures, "player"),
+			{},
+			{
+				x = f32(gmem.player.pos.x),
+				y = f32(gmem.player.pos.y),
+				width = f32(gmem.player.size[1] * common.SCALE),
+				height = f32(gmem.player.size[0] * common.SCALE),
+			},
+			{0, 0},
+			0,
 			rl.RED,
 		)
-	}
-
-	// Render enemies
-	for e in getCurrentLevel(gmem).enemies {
-		src := rl.Rectangle {
-			x      = 0,
-			y      = 0,
-			width  = f32(e.size[1]),
-			height = f32(e.size[0]),
-		}
-		if e.direction == "ltr" {
-			src.width *= -1
-		}
-		dest := rl.Rectangle {
-			x      = e.pos.x,
-			y      = e.pos.y,
-			width  = f32(e.size[1]) * common.SCALE,
-			height = f32(e.size[0]) * common.SCALE,
-		}
-
-		tex, ok := gmem.textures[e.texture_id]
-		if !ok {
-			fmt.printf("texture not found: %s\n", e.texture_id)
-		}
-
-		rl.DrawTexturePro(tex, src, dest, {0, 0}, 0, rl.WHITE)
 
 		when HAS_LEVEL_DEBUG {
 			rl.DrawRectangleLines(
-				i32(e.pos.x),
-				i32(e.pos.y),
-				i32(e.size[1] * SCALE),
-				i32(e.size[0] * SCALE),
+				i32(gmem.player.pos.x),
+				i32(gmem.player.pos.y),
+				i32(gmem.player.size[1] * common.SCALE),
+				i32(gmem.player.size[0] * common.SCALE),
 				rl.RED,
 			)
+			fmt.printf(
+				"%v,%v,%v,%v\n",
+				i32(gmem.player.pos.x),
+				i32(gmem.player.pos.y),
+				i32(gmem.player.size[1] * common.SCALE),
+				i32(gmem.player.size[0] * common.SCALE),
+			)
 		}
-	}
 
-	// Render UI
-	ui.render(gmem)
+		// Render enemies
+		for e in getCurrentLevel(gmem).enemies {
+			src := rl.Rectangle {
+				x      = 0,
+				y      = 0,
+				width  = f32(e.size[1]),
+				height = f32(e.size[0]),
+			}
+			if e.direction == "ltr" {
+				src.width *= -1
+			}
+			dest := rl.Rectangle {
+				x      = e.pos.x,
+				y      = e.pos.y,
+				width  = f32(e.size[1]) * common.SCALE,
+				height = f32(e.size[0]) * common.SCALE,
+			}
+
+			rl.DrawTexturePro(
+				common.get_tex(&gmem.textures, e.texture_id),
+				src,
+				dest,
+				{0, 0},
+				0,
+				rl.WHITE,
+			)
+
+			when HAS_LEVEL_DEBUG {
+				rl.DrawRectangleLines(
+					i32(e.pos.x),
+					i32(e.pos.y),
+					i32(e.size[1] * common.SCALE),
+					i32(e.size[0] * common.SCALE),
+					rl.RED,
+				)
+			}
+		}
+
+		// Render UI
+		ui.render(gmem)
+
+	case .GAME_OVER:
+	case .EXIT:
+	}
 
 	rl.EndDrawing()
 }
 
 destroy :: proc() {
 	rl.CloseWindow()
-}
-
-get_state :: proc(gmem: ^common.Memory) -> common.State {
-	return gmem.state[0]
-}
-
-get_prev_state :: proc(gmem: ^common.Memory) -> common.State {
-	return gmem.state[1]
-}
-
-push_state :: proc(gmem: ^common.Memory, state: common.State) {
-	temp_state := gmem.state[0]
-	gmem.state[0] = state
-	gmem.state[1] = temp_state
 }
