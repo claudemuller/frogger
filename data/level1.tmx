@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="28" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="15">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="28" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="52">
  <tileset firstgid="1" source="tiles.tsx"/>
- <tileset firstgid="9" source="entities.tsx"/>
+ <tileset firstgid="65" source="entities.tsx"/>
  <layer id="1" name="Terrain" width="28" height="16">
   <data encoding="csv">
 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -22,47 +22,84 @@
 1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826,1073741826
 </data>
  </layer>
+ <objectgroup id="3" name="Obstacles">
+  <object id="17" name="Tree" gid="5" x="287.39" y="343.726" width="32" height="32"/>
+  <object id="18" name="Tree" gid="5" x="638.911" y="315.604" width="32" height="32"/>
+  <object id="19" name="Tree" gid="5" x="-0.857557" y="186.893" width="32" height="32"/>
+  <object id="20" name="Tree" gid="5" x="478.833" y="189.597" width="32" height="32"/>
+  <object id="21" name="Tree" gid="8" x="703.266" y="90.6306" width="32" height="32"/>
+  <object id="22" name="Tree" gid="8" x="638.911" y="217.719" width="32" height="32"/>
+  <object id="23" name="Tree" gid="8" x="830.895" y="346.971" width="32" height="32"/>
+  <object id="24" name="Tree" gid="8" x="63.4978" y="316.686" width="32" height="32"/>
+  <object id="25" name="Tree" gid="8" x="127.312" y="445.396" width="32" height="32"/>
+  <object id="26" name="Bushes" gid="11" x="255.482" y="190.138" width="32" height="32"/>
+  <object id="27" name="Bushes" gid="11" x="512.363" y="217.719" width="32" height="32"/>
+  <object id="28" name="Bushes" gid="11" x="128.394" y="89.549" width="32" height="32"/>
+  <object id="29" name="Bushes" gid="11" x="97.0275" y="444.856" width="32" height="32"/>
+  <object id="30" name="Bushes" gid="9" x="800.07" y="444.856" width="32" height="32"/>
+  <object id="31" name="Bushes" gid="9" x="768.162" y="316.145" width="32" height="32"/>
+  <object id="32" name="Bushes" gid="9" x="864.966" y="89.549" width="32" height="32"/>
+  <object id="33" name="Bushes" gid="9" x="66.2018" y="343.726" width="32" height="32"/>
+  <object id="34" name="Bushes" gid="10" x="318.756" y="348.593" width="32" height="32"/>
+  <object id="35" name="Lamppost" gid="18" x="831.977" y="465.406" width="32" height="32"/>
+  <object id="36" name="Lamppost" gid="18" x="0.764848" y="468.651" width="32" height="32"/>
+  <object id="37" name="Lamppost" gid="18" x="415.56" y="467.569" width="32" height="32"/>
+  <object id="38" name="Lamppost" gid="18" x="0.764848" y="58.1825" width="32" height="32"/>
+  <object id="39" name="Lamppost" gid="18" x="416.641" y="61.4273" width="32" height="32"/>
+  <object id="40" name="Lamppost" gid="18" x="830.354" y="60.8865" width="32" height="32"/>
+  <object id="41" name="Lamppost" gid="14" x="832" y="433.818" width="32" height="32"/>
+  <object id="42" name="Lamppost" gid="14" x="415.636" y="435.636" width="32" height="32"/>
+  <object id="43" name="Lamppost" gid="14" x="0.727273" y="436.67" width="32" height="32"/>
+  <object id="44" name="Lamppost" gid="14" x="0.75" y="26.25" width="32" height="32"/>
+  <object id="45" name="Lamppost" gid="14" x="416.625" y="29.5" width="32" height="32"/>
+  <object id="46" name="Lamppost" gid="14" x="830.337" y="29" width="32" height="32"/>
+  <object id="47" name="Dustbin" gid="4" x="34" y="505" width="32" height="32"/>
+  <object id="48" name="Dustbin" gid="4" x="801.5" y="504.5" width="32" height="32"/>
+  <object id="49" name="Dustbin" gid="4" x="641.5" y="18" width="32" height="32"/>
+  <object id="50" name="Dustbin" gid="4" x="225" y="18.5" width="32" height="32"/>
+ </objectgroup>
  <objectgroup id="2" name="Entities">
-  <object id="1" name="Car" type="Enemy" gid="9" x="760.468" y="121.386" width="34" height="24">
+  <object id="1" name="Car" type="Enemy" gid="65" x="760.468" y="121.386" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="2" name="Car" type="Enemy" gid="2147483660" x="479.539" y="283.901" width="34" height="24">
+  <object id="2" name="Car" type="Enemy" gid="2147483716" x="479.539" y="283.901" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="8" name="Truck" type="Enemy" gid="14" x="721.039" y="377.65" width="64" height="32">
+  <object id="8" name="Truck" type="Enemy" gid="70" x="721.039" y="377.65" width="64" height="32">
    <properties>
     <property name="Speed" type="float" value="1"/>
    </properties>
   </object>
-  <object id="9" name="Truck" type="Enemy" gid="14" x="124.662" y="153.013" width="64" height="32">
+  <object id="9" name="Truck" type="Enemy" gid="70" x="124.662" y="153.013" width="64" height="32">
    <properties>
     <property name="Speed" type="float" value="1"/>
    </properties>
   </object>
-  <object id="10" name="Car" type="Enemy" gid="10" x="343.588" y="119.805" width="34" height="24">
+  <object id="10" name="Car" type="Enemy" gid="66" x="343.588" y="119.805" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="11" name="Car" type="Enemy" gid="13" x="184.802" y="410.824" width="34" height="24">
+  <object id="11" name="Car" type="Enemy" gid="69" x="184.802" y="410.824" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="12" name="Car" type="Enemy" gid="15" x="518.837" y="410.293" width="34" height="24">
+  <object id="12" name="Car" type="Enemy" gid="71" x="518.837" y="410.293" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="13" name="Car" type="Enemy" gid="2147483659" x="294.2" y="249.383" width="34" height="24">
+  <object id="13" name="Car" type="Enemy" gid="2147483715" x="294.2" y="249.383" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="14" name="Player Start" type="Spawn" x="464" y="494"/>
+  <object id="14" name="Player Start" type="Trigger" x="464" y="494"/>
+  <object id="51" name="Win" type="Trigger" x="0.5" y="0.5" width="895.5" height="43.5"/>
  </objectgroup>
 </map>
