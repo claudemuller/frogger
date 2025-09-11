@@ -38,22 +38,27 @@ setup :: proc(gmem: ^common.Memory) {
 		return
 	}
 
-	gmem.levels = make([]common.Level, 1)
-	if err := json.unmarshal(jsonData, &gmem.levels[0]); err != nil {
+	// gmem.levels = make([]common.Level, 1)
+	level1: common.Level
+	if err := json.unmarshal(jsonData, &level1); err != nil {
 		fmt.printf("error unmarshalling json data: %v\n", err)
 		return
 	}
+	append(&gmem.levels, level1)
 
 	ui.setup(gmem)
 
-	common.load_tex(&gmem.textures, "semi-tractor")
-	common.load_tex(&gmem.textures, "sedan-grey")
-	common.load_tex(&gmem.textures, "sedan-purple")
-	common.load_tex(&gmem.textures, "sedan-green")
-	common.load_tex(&gmem.textures, "hatch-back-green")
-	common.load_tex(&gmem.textures, "hatch-back-yellow")
-	common.load_tex(&gmem.textures, "hatch-back-blue")
-	common.load_tex(&gmem.textures, "tiles")
+	// common.load_tex(&gmem.textures, "semi-tractor")
+	// common.load_tex(&gmem.textures, "sedan-grey")
+	// common.load_tex(&gmem.textures, "sedan-purple")
+	// common.load_tex(&gmem.textures, "sedan-green")
+	// common.load_tex(&gmem.textures, "hatch-back-green")
+	// common.load_tex(&gmem.textures, "hatch-back-yellow")
+	// common.load_tex(&gmem.textures, "hatch-back-blue")
+	if ok := common.load_tileset(&gmem.textures, gmem.levels[0].tile_sets[:]); !ok {
+		fmt.println("error loading tileset")
+		os.exit(1)
+	}
 
 	midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
 	bottom_y_tile := u8(common.NUM_TILES_IN_COL)
