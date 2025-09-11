@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import "core:mem"
 import "game"
 
@@ -9,17 +10,18 @@ main :: proc() {
 	context.allocator = mem.tracking_allocator(&track)
 
 	defer {
+		// TODO: enable and fix
 		// for _, entry in track.allocation_map {
 		// 	fmt.eprintf("%v leaked %v bytes\n", entry.location, entry.size)
 		// }
 		// for entry in track.bad_free_array {
 		// 	fmt.eprintf("%v bad free\n", entry.location)
 		// }
-		mem.tracking_allocator_destroy(&track)
+		// mem.tracking_allocator_destroy(&track)
 	}
 
 	g := game.init("Frogger")
-	defer game.destroy(g)
+	defer game.destroy()
 
 	game.run(g)
 }

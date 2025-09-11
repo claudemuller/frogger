@@ -25,6 +25,7 @@ GamepadButton :: enum {
 
 KeyboardButton :: enum {
 	F1,
+	SPACE,
 	UP,
 	DOWN,
 	LEFT,
@@ -87,12 +88,25 @@ process :: proc(input: ^Input) {
 
 	input.kb.btns = {}
 	if rl.IsKeyPressed(.F1) do input.kb.btns += {.F1}
-	if rl.IsKeyDown(.UP) do input.kb.btns += {.UP}
-	if rl.IsKeyUp(.UP) do input.kb.btns -= {.UP}
-	if rl.IsKeyDown(.DOWN) do input.kb.btns += {.DOWN}
-	if rl.IsKeyUp(.DOWN) do input.kb.btns -= {.DOWN}
-	if rl.IsKeyDown(.LEFT) do input.kb.btns += {.LEFT}
-	if rl.IsKeyUp(.LEFT) do input.kb.btns -= {.LEFT}
-	if rl.IsKeyDown(.RIGHT) do input.kb.btns += {.RIGHT}
-	if rl.IsKeyUp(.RIGHT) do input.kb.btns -= {.RIGHT}
+	if rl.IsKeyReleased(.F1) do input.kb.btns -= {.F1}
+	if rl.IsKeyPressed(.SPACE) do input.kb.btns += {.SPACE}
+	if rl.IsKeyReleased(.SPACE) do input.kb.btns -= {.SPACE}
+
+	if rl.IsKeyPressed(.UP) do input.kb.btns += {.UP}
+	if rl.IsKeyReleased(.UP) do input.kb.btns -= {.UP}
+	if rl.IsKeyPressed(.DOWN) do input.kb.btns += {.DOWN}
+	if rl.IsKeyReleased(.DOWN) do input.kb.btns -= {.DOWN}
+	if rl.IsKeyPressed(.LEFT) do input.kb.btns += {.LEFT}
+	if rl.IsKeyReleased(.LEFT) do input.kb.btns -= {.LEFT}
+	if rl.IsKeyPressed(.RIGHT) do input.kb.btns += {.RIGHT}
+	if rl.IsKeyReleased(.RIGHT) do input.kb.btns -= {.RIGHT}
+
+	// if rl.IsKeyDown(.UP) do input.kb.btns += {.UP}
+	// if rl.IsKeyUp(.UP) do input.kb.btns -= {.UP}
+	// if rl.IsKeyDown(.DOWN) do input.kb.btns += {.DOWN}
+	// if rl.IsKeyUp(.DOWN) do input.kb.btns -= {.DOWN}
+	// if rl.IsKeyDown(.LEFT) do input.kb.btns += {.LEFT}
+	// if rl.IsKeyUp(.LEFT) do input.kb.btns -= {.LEFT}
+	// if rl.IsKeyDown(.RIGHT) do input.kb.btns += {.RIGHT}
+	// if rl.IsKeyUp(.RIGHT) do input.kb.btns -= {.RIGHT}
 }
