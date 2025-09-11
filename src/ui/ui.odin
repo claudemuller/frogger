@@ -26,10 +26,10 @@ setup :: proc(gmem: ^common.Memory) {
 	rl.UnloadImage(redpx)
 	gmem.textures["NO_TEXTURE"] = redtex
 
-	common.load_tex(&gmem.textures, "dxtrs-games")
-	// common.load_tex(&gmem.textures, "dxtrs-games-gif")
-	common.load_tex(&gmem.textures, WIN_DECORATION)
-	common.load_tex(&gmem.textures, BUTTON_GREEN)
+	common.load_tex(&gmem.textures, "dxtrs-games", "res/dxtrs-games.png")
+	common.load_tex(&gmem.textures, "dxtrs-games-gif", "res/dxtrs-games.gif")
+	common.load_tex(&gmem.textures, WIN_DECORATION, "res/window-decoration.png")
+	common.load_tex(&gmem.textures, BUTTON_GREEN, "res/button-green.png")
 }
 
 update :: proc(gmem: ^common.Memory) -> bool {

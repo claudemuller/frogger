@@ -55,7 +55,8 @@ setup :: proc(gmem: ^common.Memory) {
 	// common.load_tex(&gmem.textures, "hatch-back-green")
 	// common.load_tex(&gmem.textures, "hatch-back-yellow")
 	// common.load_tex(&gmem.textures, "hatch-back-blue")
-	if ok := common.load_tileset(&gmem.textures, gmem.levels[0].tile_sets[:]); !ok {
+
+	if ok := common.load_tilesets(&gmem.textures, gmem.levels[0].tilesets[:]); !ok {
 		fmt.println("error loading tileset")
 		os.exit(1)
 	}

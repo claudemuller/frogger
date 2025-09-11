@@ -39,8 +39,8 @@ Entity :: struct {
 	type:             string, // should be enum
 	x:                f32,
 	y:                f32,
-	width:            int,
-	height:           int,
+	width:            f32,
+	height:           f32,
 	rotation:         f32,
 	visible:          bool,
 	properties:       [dynamic]EntityProperty,
@@ -100,7 +100,7 @@ Level :: struct {
 	tile_width:  int,
 	type:        string, // map - should be enum
 	orientation: string, // orthogonal - should be enum
-	tile_sets:   [dynamic]TileSet,
+	tilesets:    [dynamic]TileSet,
 	layers:      [dynamic]Layer,
 }
 
@@ -116,41 +116,45 @@ Memory :: struct {
 	player:       Entity,
 }
 
+Image :: struct {
+	Source: string `xml:"source,attr"`,
+	Width:  int `xml:"width,attr"`,
+	Height: int `xml:"height,attr"`,
+}
 
-load_tileset :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> bool {
+Tileset :: struct {
+	Image: Image `xml:"image"`,
+}
+
+load_tilesets :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> bool {
 	for t in tilsets {
-		doc, err := xml.load_from_file(t.source)
-		if err != nil {
-			fmt.panicf("%v", err)
+		fname := strings.concatenate({"data/", t.source})
+		doc, err := xml.load_from_file(fname)
+		if err != xml.Error.None {
+			fmt.panicf("Error loading XML:", err)
 		}
+		defer xml.destroy(doc)
 
-		tileset_idx, ok := xml.find_child_by_ident(doc, 0, "tileset")
-		if !ok {
-			fmt.printf("tileset not found in: %s\n", t.source)
-			return false
-		}
-		tileset := doc.elements[tileset_idx].value
-
-		img_idx, img_ok := xml.find_child_by_ident(doc, 0, "image")
-		if !img_ok {
-			fmt.printf("image not found in: %s\n", t.source)
-			return false
-		}
-
-		img_src: string
-		for att in doc.elements[img_idx].attribs {
-			if att.key == "source" {
-				img_src = att.val
-				break
-			}
-		}
-
-		if img_src != "" {
-			load_tex(texs, img_src)
+		// Root element id is 0
+		image_id, found := xml.find_child_by_ident(doc, 0, "image")
+		if !found {
+			fmt.println("No <image> element found")
 			continue
 		}
 
-		fmt.printf("image source not found in: %s\n", t.source)
+		src, ok := xml.find_attribute_val_by_key(doc, image_id, "source")
+		if !ok {
+			fmt.println("<image> has no 'source' attribute")
+			continue
+		}
+
+		if src != "" {
+			parts := strings.split(src, "/")
+			fnameparts := strings.split(parts[len(parts) - 1], ".")
+			load_tex(texs, "tiles", strings.join(parts[1:], "/"))
+
+			fmt.printf("Image source: [%s] %s", fnameparts[0], strings.join(parts[1:], "/"))
+		}
 	}
 
 	return true
@@ -177,11 +181,10 @@ push_state :: proc(gmem: ^Memory, state: State) {
 	gmem.state[1] = temp_state
 }
 
-load_tex :: proc(texs: ^map[string]rl.Texture2D, n: string) {
-	name := strings.concatenate({"res/", n, ".png"})
-	texs[n] = rl.LoadTexture(strings.clone_to_cstring(name))
-	if texs[n].id == 0 {
-		fmt.printf("error loading texture: %s", name)
+load_tex :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) {
+	texs[id] = rl.LoadTexture(strings.clone_to_cstring(fname))
+	if texs[id].id == 0 {
+		fmt.printf("error loading texture: %s", fname)
 		os.exit(1)
 	}
 }
