@@ -4,6 +4,7 @@ import "../input"
 import "core:encoding/xml"
 import "core:fmt"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
 
@@ -117,17 +118,45 @@ Memory :: struct {
 }
 
 Image :: struct {
-	Source: string `xml:"source,attr"`,
-	Width:  int `xml:"width,attr"`,
-	Height: int `xml:"height,attr"`,
+	source: string,
+	width:  int,
+	height: int,
+}
+
+Tile :: struct {
+	id:    int,
+	image: Image,
+}
+
+GridOrientation :: enum {
+	UNSPECIFIED,
+	ORTHOGONAL,
+	ISOMETRIC,
+}
+
+Grid :: struct {
+	orientation: GridOrientation,
+	width:       int,
+	height:      int,
 }
 
 Tileset :: struct {
-	Image: Image `xml:"image"`,
+	name:        string,
+	tile_width:  int,
+	tile_height: int,
+	tile_count:  int,
+	columns:     int,
+	grid:        Grid,
+	image:       Image,
+	tiles:       [dynamic]Tile,
 }
 
 load_tilesets :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> bool {
 	for t in tilsets {
+		fmt.printf("-------------\nTilset: %v\n", t)
+
+		if strings.contains(t.source, "tiles") do continue
+
 		fname := strings.concatenate({"data/", t.source})
 		doc, err := xml.load_from_file(fname)
 		if err != xml.Error.None {
@@ -135,29 +164,136 @@ load_tilesets :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> boo
 		}
 		defer xml.destroy(doc)
 
-		// Root element id is 0
-		image_id, found := xml.find_child_by_ident(doc, 0, "image")
-		if !found {
-			fmt.println("No <image> element found")
-			continue
-		}
-
-		src, ok := xml.find_attribute_val_by_key(doc, image_id, "source")
+		// tileset, ok := parseTileset(doc)
+		// if !ok {
+		tileset, ok := parseTiles(doc)
 		if !ok {
-			fmt.println("<image> has no 'source' attribute")
-			continue
+			fmt.printf("failed to parse tileset: %s\n", t)
+			return false
 		}
+		// }
+		fmt.printf("%#v\n", tileset)
 
-		if src != "" {
-			parts := strings.split(src, "/")
-			fnameparts := strings.split(parts[len(parts) - 1], ".")
-			load_tex(texs, "tiles", strings.join(parts[1:], "/"))
-
-			fmt.printf("Image source: [%s] %s", fnameparts[0], strings.join(parts[1:], "/"))
-		}
+		// load_tex(texs, "tiles", strings.join(parts[1:], "/"))
 	}
 
 	return true
+}
+
+parseTilesetElem :: proc(doc: ^xml.Document) -> Tileset {
+	name, tile_width, tile_height, tile_count, columns: string
+	ok: bool
+
+	tileset_id := u32(0)
+
+	name, ok = xml.find_attribute_val_by_key(doc, tileset_id, "name")
+	if !ok {
+		fmt.println("<tileset> has no 'name' attribute")
+	}
+	tile_width, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tilewidth")
+	if !ok {
+		fmt.println("<tileset> has no 'tilewidth' attribute")
+	}
+	tile_height, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tileheight")
+	if !ok {
+		fmt.println("<tileset> has no 'tileheight' attribute")
+	}
+	tile_count, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tilecount")
+	if !ok {
+		fmt.println("<tileset> has no 'tilecount' attribute")
+	}
+	columns, ok = xml.find_attribute_val_by_key(doc, tileset_id, "columns")
+	if !ok {
+		fmt.println("<tileset> has no 'columns' attribute")
+	}
+
+	return Tileset {
+		name = name,
+		tile_width = strconv.atoi(tile_width),
+		tile_height = strconv.atoi(tile_height),
+		tile_count = strconv.atoi(tile_count),
+		columns = strconv.atoi(columns),
+	}
+}
+
+parseImageElem :: proc(doc: ^xml.Document, parent_id: u32) -> (Image, bool) {
+	image_id: u32
+	ok: bool
+
+	image_id, ok = xml.find_child_by_ident(doc, parent_id, "image")
+	if !ok {
+		fmt.println("No <image> element found")
+		return Image{}, false
+	}
+
+	source, width, height: string
+
+	source, ok = xml.find_attribute_val_by_key(doc, image_id, "source")
+	if !ok {
+		fmt.println("<image> has no 'source' attribute")
+	}
+	width, ok = xml.find_attribute_val_by_key(doc, image_id, "width")
+	if !ok {
+		fmt.println("<image> has no 'width' attribute")
+	}
+	height, ok = xml.find_attribute_val_by_key(doc, image_id, "height")
+	if !ok {
+		fmt.println("<image> has no 'height' attribute")
+	}
+
+	return Image{source = source, width = strconv.atoi(width), height = strconv.atoi(height)}, true
+}
+
+parseTileset :: proc(doc: ^xml.Document) -> (Tileset, bool) {
+	tileset := parseTilesetElem(doc)
+
+	// The root element
+	tileset_id := u32(0)
+	image, ok := parseImageElem(doc, tileset_id)
+	if !ok {
+		return Tileset{}, false
+	}
+
+	tileset.image = image
+
+	return tileset, true
+}
+
+parseTiles :: proc(doc: ^xml.Document) -> (Tileset, bool) {
+	tileset := parseTilesetElem(doc)
+
+	tiles: [dynamic]Tile
+	image_id, tile_id: u32
+	ok: bool
+
+	// The root element
+	tileset_id := u32(0)
+
+	i: int
+	for {
+		tile_id, ok = xml.find_child_by_ident(doc, tileset_id, "tile", i)
+		if !ok {
+			fmt.printf("no <tile> found at %d\n", i)
+			break
+		}
+
+		id: string
+		id, ok = xml.find_attribute_val_by_key(doc, tile_id, "id")
+		if !ok {
+			fmt.println("<tile> has no 'id' attribute")
+		}
+
+		image, ok := parseImageElem(doc, tile_id)
+		if !ok {
+			fmt.printf("no <image> found at tile %d\n", i)
+			break
+		}
+
+		append(&tileset.tiles, Tile{id = strconv.atoi(id), image = image})
+		i += 1
+	}
+
+	return tileset, true
 }
 
 State :: enum {
