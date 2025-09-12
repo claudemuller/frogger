@@ -34,28 +34,14 @@ init :: proc(win_name: cstring) -> ^common.Memory {
 }
 
 setup :: proc(gmem: ^common.Memory) {
-	jsonData, ok := os.read_entire_file("data/level1.json")
-	if !ok {
-		fmt.println("error reading file")
-		return
+	if ok := common.load_level(gmem, 1); !ok {
+		fmt.panicf("Error loading level: %d", 1)
 	}
 
-	level1: common.Level
-	if err := json.unmarshal(jsonData, &level1); err != nil {
-		fmt.printf("error unmarshalling json data: %v\n", err)
-		return
-	}
-	append(&gmem.levels, level1)
-
-	ui.setup(gmem)
-
-	if ok := common.load_tilesets(gmem, gmem.levels[0].tilesets[:]); !ok {
-		fmt.println("error loading tileset")
-		os.exit(1)
-	}
+	// ui.setup(gmem)
 
 	fmt.printf("\n%v\n\n", gmem)
-	// os.exit(0)
+	os.exit(0)
 
 	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
 	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
@@ -214,20 +200,21 @@ render :: proc(gmem: ^common.Memory) {
 	case .PLAYING:
 		// Render tilemap
 		level := getCurrentLevel(gmem)
-		for l in level.layers {
-			for d, i in l.data {
-				x := i % l.width
-				y := i / l.width
+		// for l in level.layers {
+		// 	for d, i in l.data {
+		// 		x := i % l.width
+		// 		y := i / l.width
+		//
+		// 		rl.DrawRectangleLines(
+		// 			i32(x),
+		// 			i32(y),
+		// 			i32(level.tilewidth * common.SCALE),
+		// 			i32(level.tileheight * common.SCALE),
+		// 			rl.DARKBLUE,
+		// 		)
+		// 	}
+		// }
 
-				rl.DrawRectangleLines(
-					i32(x),
-					i32(y),
-					i32(level.tilewidth * common.SCALE),
-					i32(level.tileheight * common.SCALE),
-					rl.DARKBLUE,
-				)
-			}
-		}
 		// for t, i in getCurrentLevel(gmem).tiles {
 		// 	x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
 		// 	y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE

@@ -1,7 +1,8 @@
 package common
 
 import "../input"
-import "core:encoding/xml"
+import "../tiled"
+import "core:encoding/json"
 import "core:fmt"
 import "core:os"
 import "core:strconv"
@@ -33,76 +34,21 @@ Entity :: struct {
 	timer:            f32,
 	backoff:          bool,
 	backoff_duration: f32,
-	// Tiled data
-	id:               int,
-	gid:              int,
-	name:             string,
-	type:             string, // should be enum
-	x:                f32,
-	y:                f32,
-	width:            f32,
-	height:           f32,
-	rotation:         f32,
-	visible:          bool,
-	properties:       [dynamic]EntityProperty,
 }
 
-EntityType :: enum {
-	ENEMY, // Enemy
-	TRIGGER, // Trigger
+LayerType :: enum {
+	TERRAIN,
+	OBJECTS,
+	ENEMIES,
+	TRIGGERS,
+	PLAYER,
+	UI,
 }
-
-EntityProperty :: struct {
-	name:  string, // Speed
-	type:  string, // float
-	value: f32, // this changes based on the above type
-}
-
-ObjectType :: enum {
-	TILE, //tilelayer
-	OBJECT, // objectgroup
-}
-DrawOrder :: enum {
-	TopDown, // topdown
-}
-RenderOrder :: enum {
-	RIGHT_DOWN,
-}
-
-// Tiled data
-Layer :: struct {
-	id:        int,
-	name:      string,
-	type:      string, // should be enum
-	visible:   bool,
-	width:     int,
-	x:         int,
-	y:         int,
-	draworder: string, // should be enum
-	opacity:   f32,
-	data:      [dynamic]int,
-	objects:   [dynamic]Entity,
-}
-
-TileSet :: struct {
-	firstgid: int,
-	source:   string,
-}
-
 Level :: struct {
 	enemy_speed: f32,
 	enemies:     []Entity,
 	tiles:       [NUM_TILES]u8,
-	// Tiled data
-	renderorder: string, // right-down - should be enum
-	height:      int,
-	width:       int,
-	tileheight:  int,
-	tilewidth:   int,
-	type:        string, // map - should be enum
-	orientation: string, // orthogonal - should be enum
-	tilesets:    [dynamic]TileSet,
-	layers:      [dynamic]Layer,
+	layers:      map[LayerType]int,
 }
 
 Memory :: struct {
@@ -112,214 +58,105 @@ Memory :: struct {
 	splash_timer: f32,
 	state:        [2]State,
 	textures:     map[string]rl.Texture2D,
-	levels:       [dynamic]Level,
+	level:        Level,
 	input:        input.Input,
 	player:       Entity,
 }
 
-Image :: struct {
-	source: string,
-	width:  int,
-	height: int,
-}
+// Tileset :: struct {
+// 	columns:     int,
+// 	image:       string,
+// 	imageheight: int,
+// 	imagewidth:  int,
+// 	margin:      int,
+// 	name:        string,
+// 	spacing:     int,
+// 	tilecount:   int,
+// 	tileheight:  int,
+// 	tilewidth:   int,
+// 	texture_id:  string,
+// 	// type:        string, // enum - tileset
+// 	// grid:        Grid,
+// 	// tiles:       [dynamic]Tile,
+// }
 
-Tile :: struct {
-	id:    int,
-	image: Image,
-}
+load_level :: proc(gmem: ^Memory, level: u8) -> bool {
+	// TODO:(lukefilewalker) check if the file for "level" exists
+	fname := "data/level1.json"
 
-GridOrientation :: enum {
-	UNSPECIFIED,
-	ORTHOGONAL,
-	ISOMETRIC,
-}
+	jsonData, ok := os.read_entire_file(fname)
+	if !ok {
+		fmt.printf("error reading file: %s\n", fname)
+		return false
+	}
 
-Grid :: struct {
-	orientation: GridOrientation,
-	width:       int,
-	height:      int,
-}
+	level: tiled.Level
+	if err := json.unmarshal(jsonData, &level); err != nil {
+		fmt.printf("error unmarshalling level json data: %v\n", err)
+		return false
+	}
 
-Tileset :: struct {
-	name:        string,
-	tile_width:  int,
-	tile_height: int,
-	tile_count:  int,
-	columns:     int,
-	grid:        Grid,
-	image:       Image,
-	tiles:       [dynamic]Tile,
-}
+	tilesets := make([dynamic]tiled.Tileset, 0, len(level.tilesets))
 
-load_tilesets :: proc(gmem: ^Memory, tilsets: []TileSet) -> bool {
-	for t in tilsets {
+	for t in level.tilesets {
 		fname := strings.concatenate({"data/", t.source})
-		doc, err := xml.load_from_file(fname)
-		if err != xml.Error.None {
-			fmt.panicf("Error loading XML:", err)
-		}
-		defer xml.destroy(doc)
-
-		// Parse <tileset...>
-		//         <image ...>
-		//       </tileset>
-		tileset, ok := parseTileset(doc)
+		jsonData, ok := os.read_entire_file(fname)
 		if !ok {
-			// Parse <tileset...>
-			//         <tile ...><image ...></tile>
-			//         <tile ...><image ...></tile>
-			//         ...
-			//       </tileset>
-			tileset, ok = parseTiles(doc)
-			if !ok {
-				fmt.printf("failed to parse tileset: %s\n", t)
-				return false
+			fmt.printf("error reading file: %s\n", fname)
+			return false
+		}
+
+		tileset: tiled.Tileset
+		if err := json.unmarshal(jsonData, &tileset); err != nil {
+			fmt.printf("error unmarshalling tileset json data for %s: %v\n", fname, err)
+			return false
+		}
+
+		append(&tilesets, tileset)
+	}
+
+	fmt.printf("\n\n%v\n\n", level)
+	fmt.printf("\n\n%v\n\n", tilesets)
+
+
+	return tiled_to_game_state(gmem, &level, tilesets)
+}
+
+tiled_to_game_state :: proc(
+	gmem: ^Memory,
+	level: ^tiled.Level,
+	tilesets: [dynamic]tiled.Tileset,
+) -> bool {
+	// Load the tilesets' textures
+	for tileset in tilesets {
+		if tileset.image != "" {
+			fnameparts := strings.split(tileset.image, "/")
+			fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
+			fname := strings.join(fnameparts[1:], "/")
+			id := fparts[0]
+
+			if ok := load_texture(&gmem.textures, id, fname); !ok {
+				fmt.eprint("failed to load texture: %s\n", tileset.image)
 			}
 
-			if len(tileset.tiles) <= 0 do return false
-
+			// tileset.texture_id = id
+		} else {
 			for t in tileset.tiles {
-				parts := strings.split(t.image.source, "/")
-				fnameext := strings.split(parts[len(parts) - 1], ".")
+				fnameparts := strings.split(tileset.image, "/")
+				fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
+				fname := strings.join(fnameparts[1:], "/")
+				id := fparts[0]
 
-				ok = load_tex(&gmem.textures, fnameext[0], strings.join(parts[1:], "/"))
-				if !ok {
-					break
+				if ok := load_texture(&gmem.textures, id, fname); !ok {
+					fmt.eprint("failed to load texture: %s\n", t.image)
 				}
+
+				// tileset.texture_id = id
 			}
-
-			continue
 		}
-
-		if tileset.image.source == "" do return false
-
-		parts := strings.split(tileset.image.source, "/")
-		fnameext := strings.split(parts[len(parts) - 1], ".")
-
-		ok = load_tex(&gmem.textures, fnameext[0], strings.join(parts[1:], "/"))
-		if !ok {
-			break
-		}
-		fmt.printf("\n\ntexs_out_of_texfn: %v\n\n", gmem.textures)
 	}
 
 	return true
-}
-
-parseTilesetElem :: proc(doc: ^xml.Document) -> Tileset {
-	name, tile_width, tile_height, tile_count, columns: string
-	ok: bool
-
-	tileset_id := u32(0)
-
-	name, ok = xml.find_attribute_val_by_key(doc, tileset_id, "name")
-	if !ok {
-		fmt.println("<tileset> has no 'name' attribute")
-	}
-	tile_width, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tilewidth")
-	if !ok {
-		fmt.println("<tileset> has no 'tilewidth' attribute")
-	}
-	tile_height, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tileheight")
-	if !ok {
-		fmt.println("<tileset> has no 'tileheight' attribute")
-	}
-	tile_count, ok = xml.find_attribute_val_by_key(doc, tileset_id, "tilecount")
-	if !ok {
-		fmt.println("<tileset> has no 'tilecount' attribute")
-	}
-	columns, ok = xml.find_attribute_val_by_key(doc, tileset_id, "columns")
-	if !ok {
-		fmt.println("<tileset> has no 'columns' attribute")
-	}
-
-	return Tileset {
-		name = name,
-		tile_width = strconv.atoi(tile_width),
-		tile_height = strconv.atoi(tile_height),
-		tile_count = strconv.atoi(tile_count),
-		columns = strconv.atoi(columns),
-	}
-}
-
-parseImageElem :: proc(doc: ^xml.Document, parent_id: u32) -> (Image, bool) {
-	image_id: u32
-	ok: bool
-
-	image_id, ok = xml.find_child_by_ident(doc, parent_id, "image")
-	if !ok {
-		fmt.println("No <image> element found")
-		return Image{}, false
-	}
-
-	source, width, height: string
-
-	source, ok = xml.find_attribute_val_by_key(doc, image_id, "source")
-	if !ok {
-		fmt.println("<image> has no 'source' attribute")
-	}
-	width, ok = xml.find_attribute_val_by_key(doc, image_id, "width")
-	if !ok {
-		fmt.println("<image> has no 'width' attribute")
-	}
-	height, ok = xml.find_attribute_val_by_key(doc, image_id, "height")
-	if !ok {
-		fmt.println("<image> has no 'height' attribute")
-	}
-
-	return Image{source = source, width = strconv.atoi(width), height = strconv.atoi(height)}, true
-}
-
-parseTileset :: proc(doc: ^xml.Document) -> (Tileset, bool) {
-	tileset := parseTilesetElem(doc)
-
-	// The root element
-	tileset_id := u32(0)
-	image, ok := parseImageElem(doc, tileset_id)
-	if !ok {
-		return Tileset{}, false
-	}
-
-	tileset.image = image
-
-	return tileset, true
-}
-
-parseTiles :: proc(doc: ^xml.Document) -> (Tileset, bool) {
-	tileset := parseTilesetElem(doc)
-
-	tiles: [dynamic]Tile
-	image_id, tile_id: u32
-	ok: bool
-
-	// The root element
-	tileset_id := u32(0)
-
-	i: int
-	for {
-		tile_id, ok = xml.find_child_by_ident(doc, tileset_id, "tile", i)
-		if !ok {
-			fmt.printf("no <tile> found at %d\n", i)
-			break
-		}
-
-		id: string
-		id, ok = xml.find_attribute_val_by_key(doc, tile_id, "id")
-		if !ok {
-			fmt.println("<tile> has no 'id' attribute")
-		}
-
-		image, ok := parseImageElem(doc, tile_id)
-		if !ok {
-			fmt.printf("no <image> found at tile %d\n", i)
-			break
-		}
-
-		append(&tileset.tiles, Tile{id = strconv.atoi(id), image = image})
-		i += 1
-	}
-
-	return tileset, true
 }
 
 State :: enum {
@@ -343,7 +180,7 @@ push_state :: proc(gmem: ^Memory, state: State) {
 	gmem.state[1] = temp_state
 }
 
-load_tex :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) -> bool {
+load_texture :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) -> bool {
 	// The original id gets corrupted due to id being the header to the backing array of the string - I guess :D
 	id := strings.clone(id)
 	texs[id] = rl.LoadTexture(strings.clone_to_cstring(fname))
@@ -355,7 +192,7 @@ load_tex :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) -> bool {
 	return true
 }
 
-get_tex :: proc(texs: map[string]rl.Texture2D, id: string) -> rl.Texture2D {
+get_texture :: proc(texs: map[string]rl.Texture2D, id: string) -> rl.Texture2D {
 	t, ok := texs[id]
 	if !ok {
 		fmt.printf("failed to get texture: %s\n%v\n", id, texs)
