@@ -151,12 +151,8 @@ Tileset :: struct {
 	tiles:       [dynamic]Tile,
 }
 
-load_tilesets :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> bool {
+load_tilesets :: proc(gmem: ^Memory, tilsets: []TileSet) -> bool {
 	for t in tilsets {
-		fmt.printf("-------------\nTilset: %v\n", t)
-
-		if strings.contains(t.source, "tiles") do continue
-
 		fname := strings.concatenate({"data/", t.source})
 		doc, err := xml.load_from_file(fname)
 		if err != xml.Error.None {
@@ -164,17 +160,49 @@ load_tilesets :: proc(texs: ^map[string]rl.Texture2D, tilsets: []TileSet) -> boo
 		}
 		defer xml.destroy(doc)
 
-		// tileset, ok := parseTileset(doc)
-		// if !ok {
-		tileset, ok := parseTiles(doc)
+		// Parse <tileset...>
+		//         <image ...>
+		//       </tileset>
+		tileset, ok := parseTileset(doc)
 		if !ok {
-			fmt.printf("failed to parse tileset: %s\n", t)
-			return false
-		}
-		// }
-		fmt.printf("%#v\n", tileset)
+			// Parse <tileset...>
+			//         <tile ...><image ...></tile>
+			//         <tile ...><image ...></tile>
+			//         ...
+			//       </tileset>
+			tileset, ok = parseTiles(doc)
+			if !ok {
+				fmt.printf("failed to parse tileset: %s\n", t)
+				return false
+			}
 
-		// load_tex(texs, "tiles", strings.join(parts[1:], "/"))
+			if len(tileset.tiles) <= 0 do return false
+
+			for t in tileset.tiles {
+				parts := strings.split(t.image.source, "/")
+				fnameext := strings.split(parts[len(parts) - 1], ".")
+
+				ok = load_tex(&gmem.textures, fnameext[0], strings.join(parts[1:], "/"))
+				if !ok {
+					// fmt.printf("id:%s fname:%s", id, fname)
+					break
+				}
+				fmt.printf("\n\ntexs_out_of_texfn: %v\n\n", gmem.textures)
+			}
+
+			continue
+		}
+
+		if tileset.image.source == "" do return false
+
+		parts := strings.split(tileset.image.source, "/")
+		fnameext := strings.split(parts[len(parts) - 1], ".")
+
+		ok = load_tex(&gmem.textures, fnameext[0], strings.join(parts[1:], "/"))
+		if !ok {
+			break
+		}
+		fmt.printf("\n\ntexs_out_of_texfn: %v\n\n", gmem.textures)
 	}
 
 	return true
@@ -317,18 +345,22 @@ push_state :: proc(gmem: ^Memory, state: State) {
 	gmem.state[1] = temp_state
 }
 
-load_tex :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) {
+load_tex :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) -> bool {
+	// The original id gets corrupted due to id being the header to the backing array of the string - I guess :D
+	id := strings.clone(id)
 	texs[id] = rl.LoadTexture(strings.clone_to_cstring(fname))
 	if texs[id].id == 0 {
 		fmt.printf("error loading texture: %s", fname)
-		os.exit(1)
+		return false
 	}
+
+	return true
 }
 
-get_tex :: proc(texs: map[string]rl.Texture2D, n: string) -> rl.Texture2D {
-	t, ok := texs[n]
+get_tex :: proc(texs: map[string]rl.Texture2D, id: string) -> rl.Texture2D {
+	t, ok := texs[id]
 	if !ok {
-		fmt.printf("failed to get texture: %s\n", n)
+		fmt.printf("failed to get texture: %s\n%v\n", id, texs)
 		return texs["NO_TEXTURE"]
 	}
 	return t

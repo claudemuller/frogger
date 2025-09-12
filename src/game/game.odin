@@ -7,6 +7,7 @@ import "core:encoding/json"
 import "core:fmt"
 import "core:math"
 import "core:os"
+import "core:slice"
 import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
@@ -56,18 +57,18 @@ setup :: proc(gmem: ^common.Memory) {
 	// common.load_tex(&gmem.textures, "hatch-back-yellow")
 	// common.load_tex(&gmem.textures, "hatch-back-blue")
 
-	if ok := common.load_tilesets(&gmem.textures, gmem.levels[0].tilesets[:]); !ok {
+	if ok := common.load_tilesets(gmem, gmem.levels[0].tilesets[:]); !ok {
 		fmt.println("error loading tileset")
 		os.exit(1)
 	}
 
-	midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
-	bottom_y_tile := u8(common.NUM_TILES_IN_COL)
-	gmem.player = common.Entity {
-		pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
-		tilepos = {midway_x_tile, bottom_y_tile},
-		size    = {20, 20},
-	}
+	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
+	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
+	// gmem.player = common.Entity {
+	// 	pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
+	// 	tilepos = {midway_x_tile, bottom_y_tile},
+	// 	size    = {20, 20},
+	// }
 }
 
 getCurrentLevel :: proc(gmem: ^common.Memory) -> ^common.Level {
