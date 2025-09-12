@@ -97,8 +97,8 @@ Level :: struct {
 	renderorder: string, // right-down - should be enum
 	height:      int,
 	width:       int,
-	tile_height: int,
-	tile_width:  int,
+	tileheight:  int,
+	tilewidth:   int,
 	type:        string, // map - should be enum
 	orientation: string, // orthogonal - should be enum
 	tilesets:    [dynamic]TileSet,
@@ -184,10 +184,8 @@ load_tilesets :: proc(gmem: ^Memory, tilsets: []TileSet) -> bool {
 
 				ok = load_tex(&gmem.textures, fnameext[0], strings.join(parts[1:], "/"))
 				if !ok {
-					// fmt.printf("id:%s fname:%s", id, fname)
 					break
 				}
-				fmt.printf("\n\ntexs_out_of_texfn: %v\n\n", gmem.textures)
 			}
 
 			continue

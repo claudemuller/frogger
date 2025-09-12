@@ -23,6 +23,7 @@ init :: proc(win_name: cstring) -> ^common.Memory {
 	rl.SetExitKey(.ESCAPE)
 
 	gmem := new(common.Memory)
+	gmem.win_name = win_name
 	setup(gmem)
 
 	gmem.is_running = true
@@ -39,7 +40,6 @@ setup :: proc(gmem: ^common.Memory) {
 		return
 	}
 
-	// gmem.levels = make([]common.Level, 1)
 	level1: common.Level
 	if err := json.unmarshal(jsonData, &level1); err != nil {
 		fmt.printf("error unmarshalling json data: %v\n", err)
@@ -49,18 +49,13 @@ setup :: proc(gmem: ^common.Memory) {
 
 	ui.setup(gmem)
 
-	// common.load_tex(&gmem.textures, "semi-tractor")
-	// common.load_tex(&gmem.textures, "sedan-grey")
-	// common.load_tex(&gmem.textures, "sedan-purple")
-	// common.load_tex(&gmem.textures, "sedan-green")
-	// common.load_tex(&gmem.textures, "hatch-back-green")
-	// common.load_tex(&gmem.textures, "hatch-back-yellow")
-	// common.load_tex(&gmem.textures, "hatch-back-blue")
-
 	if ok := common.load_tilesets(gmem, gmem.levels[0].tilesets[:]); !ok {
 		fmt.println("error loading tileset")
 		os.exit(1)
 	}
+
+	fmt.printf("\n%v\n\n", gmem)
+	// os.exit(0)
 
 	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
 	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
@@ -74,7 +69,6 @@ setup :: proc(gmem: ^common.Memory) {
 getCurrentLevel :: proc(gmem: ^common.Memory) -> ^common.Level {
 	return &gmem.levels[gmem.currentLevel]
 }
-
 
 run :: proc(gmem: ^common.Memory) {
 	for !rl.WindowShouldClose() {
@@ -219,73 +213,88 @@ render :: proc(gmem: ^common.Memory) {
 
 	case .PLAYING:
 		// Render tilemap
-		for t, i in getCurrentLevel(gmem).tiles {
-			x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
-			y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+		level := getCurrentLevel(gmem)
+		for l in level.layers {
+			for d, i in l.data {
+				x := i % l.width
+				y := i / l.width
 
-			src := rl.Rectangle {
-				width  = common.TILE_SIZE,
-				height = common.TILE_SIZE,
+				rl.DrawRectangleLines(
+					i32(x),
+					i32(y),
+					i32(level.tilewidth * common.SCALE),
+					i32(level.tileheight * common.SCALE),
+					rl.DARKBLUE,
+				)
 			}
-			dest := rl.Rectangle {
-				x      = x,
-				y      = y,
-				width  = common.TILE_SIZE * common.SCALE,
-				height = common.TILE_SIZE * common.SCALE,
-			}
-
-			switch t {
-			// Sidewalk
-			case 0:
-				src.x = 32
-				src.y = 0
-			case 1:
-				src.x = 32
-				src.y = 0
-				src.height *= -1
-
-			// Grass
-			case 2:
-				src.x = 64
-				src.y = 0
-				src.height *= -1
-			case 3:
-				src.x = 64
-				src.y = 0
-
-			// Road
-			case 4:
-				src.x = 0
-				src.y = 0
-			case 5:
-				src.x = 0
-				src.y = 0
-			}
-
-			rl.DrawTexturePro(
-				common.get_tex(gmem.textures, "tiles"),
-				src,
-				dest,
-				{0, 0},
-				0,
-				rl.WHITE,
-			)
 		}
+		// for t, i in getCurrentLevel(gmem).tiles {
+		// 	x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+		// 	y := f32(i / common.NUM_TILES_IN_ROW) * common.TILE_SIZE
+		//
+		// 	src := rl.Rectangle {
+		// 		width  = common.TILE_SIZE,
+		// 		height = common.TILE_SIZE,
+		// 	}
+		// 	dest := rl.Rectangle {
+		// 		x      = x,
+		// 		y      = y,
+		// 		width  = common.TILE_SIZE * common.SCALE,
+		// 		height = common.TILE_SIZE * common.SCALE,
+		// 	}
+		//
+		// 	switch t {
+		// 	// Sidewalk
+		// 	case 0:
+		// 		src.x = 32
+		// 		src.y = 0
+		// 	case 1:
+		// 		src.x = 32
+		// 		src.y = 0
+		// 		src.height *= -1
+		//
+		// 	// Grass
+		// 	case 2:
+		// 		src.x = 64
+		// 		src.y = 0
+		// 		src.height *= -1
+		// 	case 3:
+		// 		src.x = 64
+		// 		src.y = 0
+		//
+		// 	// Road
+		// 	case 4:
+		// 		src.x = 0
+		// 		src.y = 0
+		// 	case 5:
+		// 		src.x = 0
+		// 		src.y = 0
+		// 	}
+		//
+		// 	rl.DrawTexturePro(
+		// 		common.get_tex(gmem.textures, "tiles"),
+		// 		src,
+		// 		dest,
+		// 		{0, 0},
+		// 		0,
+		// 		rl.WHITE,
+		// 	)
+		// }
 
 		// Render player
-		rl.DrawTexturePro(
-			common.get_tex(gmem.textures, "player"),
-			{},
-			{
-				x = f32(gmem.player.pos.x),
-				y = f32(gmem.player.pos.y),
-				width = f32(gmem.player.size[1] * common.SCALE),
-				height = f32(gmem.player.size[0] * common.SCALE),
-			},
-			{0, 0},
-			0,
-			rl.RED,
-		)
+		// rl.DrawTexturePro(
+		// 	common.get_tex(gmem.textures, "player"),
+		// 	{},
+		// 	{
+		// 		x = f32(gmem.player.pos.x),
+		// 		y = f32(gmem.player.pos.y),
+		// 		width = f32(gmem.player.size[1] * common.SCALE),
+		// 		height = f32(gmem.player.size[0] * common.SCALE),
+		// 	},
+		// 	{0, 0},
+		// 	0,
+		// 	rl.RED,
+		// )
 
 		when HAS_LEVEL_DEBUG {
 			rl.DrawRectangleLines(
