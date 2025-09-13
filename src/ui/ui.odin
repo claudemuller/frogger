@@ -1,6 +1,8 @@
 package ui
 
 import "../common"
+import "../utils"
+import "core:fmt"
 import rl "vendor:raylib"
 
 WIN_DECORATION :: "window-decoration"
@@ -19,6 +21,8 @@ Window :: struct {
 	height: i32,
 }
 
+font: rl.Font
+
 setup :: proc(gmem: ^common.Memory) {
 	// Load texture not found texture
 	redpx := rl.GenImageColor(1, 1, rl.RED)
@@ -30,6 +34,8 @@ setup :: proc(gmem: ^common.Memory) {
 	common.load_texture(&gmem.textures, "dxtrs-games-gif", "res/dxtrs-games.gif")
 	common.load_texture(&gmem.textures, WIN_DECORATION, "res/window-decoration.png")
 	common.load_texture(&gmem.textures, BUTTON_GREEN, "res/button-green.png")
+
+	font = rl.LoadFont("res/VT323-Regular.ttf")
 }
 
 update :: proc(gmem: ^common.Memory) -> bool {
@@ -42,18 +48,51 @@ render :: proc(gmem: ^common.Memory) {
 	// drawButton(gmem, "testing", 400-50, 200-10)
 }
 
-render_splash :: proc(gmem: ^common.Memory) {
-	s := f32(287 * 0.5)
+memctr: f64
+
+draw_boot_screen :: proc(gmem: ^common.Memory) {
+	rl.ClearBackground(rl.BLACK)
+
+	font_size: f32 = 22
+	txt_colour := rl.Color{170, 170, 170, 255}
+	top_txt := `Dxtrs T-1000 Modular BIOS v1.1, An Awesome Game Company
+Copyright (C) 2020-25, Dxtrs Games, Inc.
+
+%s
+
+
+80486DX2 CPU at 66Mhz
+Memory Test: %d KB`
+
+
+	date_str := "15/03/2025"
+	memctr = rl.GetTime() * 1000 - memctr
+
+	WIN_PADDING :: 20
+
+	rl.DrawTextEx(
+		font,
+		fmt.ctprintf(top_txt, date_str, i32(memctr)),
+		{WIN_PADDING * 2, WIN_PADDING * 2},
+		font_size,
+		1,
+		txt_colour,
+	)
+
+	bottom_txt := "Press DEL to enter SETUP\n%s-SYS-2401-A/C/2B"
+	rl.DrawTextEx(
+		font,
+		fmt.ctprintf(bottom_txt, date_str),
+		{WIN_PADDING * 2, f32(rl.GetScreenHeight()) - WIN_PADDING * 2 - font_size * 2},
+		font_size,
+		1,
+		txt_colour,
+	)
+
 	rl.DrawTexture(
 		common.get_texture(gmem.textures, "dxtrs-games"),
-		i32(common.WINDOW_WIDTH * 0.5 - s),
-		i32(common.WINDOW_HEIGHT * 0.5 - s),
-		rl.WHITE,
-	)
-	rl.DrawTexture(
-		common.get_texture(gmem.textures, "dxtrs-games-gif"),
-		i32(common.WINDOW_WIDTH * 0.5 - s),
-		i32(common.WINDOW_HEIGHT * 0.5),
+		rl.GetScreenWidth() - 287 - WIN_PADDING * 2,
+		WIN_PADDING * 2,
 		rl.WHITE,
 	)
 }

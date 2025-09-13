@@ -3,6 +3,7 @@ package game
 import "../common"
 import "../input"
 import "../ui"
+import "../utils"
 import "core:encoding/json"
 import "core:fmt"
 import "core:math"
@@ -41,6 +42,8 @@ setup :: proc(gmem: ^common.Memory) {
 
 	input.setup()
 	ui.setup(gmem)
+
+	boot_game(gmem)
 }
 
 run :: proc(gmem: ^common.Memory) {
@@ -61,13 +64,19 @@ update :: proc(gmem: ^common.Memory) {
 	switch common.get_state(gmem) {
 	case .SPLASH:
 		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
+			// rl.StopSound(booting_sound)
+			boot_timer = utils.Timer{}
 			common.push_state(gmem, .MAIN_MENU)
 		}
 
-		if gmem.splash_timer <= 0 {
+		if utils.timer_done(boot_timer) {
 			common.push_state(gmem, .MAIN_MENU)
 		}
-		gmem.splash_timer -= rl.GetFrameTime()
+
+	// if gmem.splash_timer <= 0 {
+	// 	common.push_state(gmem, .MAIN_MENU)
+	// }
+	// gmem.splash_timer -= rl.GetFrameTime()
 
 	case .MAIN_MENU:
 		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
@@ -198,7 +207,7 @@ render :: proc(gmem: ^common.Memory) {
 
 	switch common.get_state(gmem) {
 	case .SPLASH:
-		ui.render_splash(gmem)
+		ui.draw_boot_screen(gmem)
 
 	case .MAIN_MENU:
 		win_w := f32(600)
@@ -393,6 +402,32 @@ render :: proc(gmem: ^common.Memory) {
 	}
 
 	rl.EndDrawing()
+}
+
+boot_timer: utils.Timer
+booting_sound: rl.Sound
+
+boot_game :: proc(gmem: ^common.Memory) {
+	// s := f32(287 * 0.5)
+	// rl.DrawTexture(
+	// 	common.get_texture(gmem.textures, "dxtrs-games"),
+	// 	i32(common.WINDOW_WIDTH * 0.5 - s),
+	// 	i32(common.WINDOW_HEIGHT * 0.5 - s),
+	// 	rl.WHITE,
+	// )
+	// rl.DrawTexture(
+	// 	common.get_texture(gmem.textures, "dxtrs-games-gif"),
+	// 	i32(common.WINDOW_WIDTH * 0.5 - s),
+	// 	i32(common.WINDOW_HEIGHT * 0.5),
+	// 	rl.WHITE,
+	// )
+
+	BOOT_TIME :: 10 // Seconds
+
+	ui.memctr = rl.GetTime()
+	// rl.PlaySound(booting_sound)
+	utils.start_timer(&boot_timer, BOOT_TIME)
+	common.push_state(gmem, .SPLASH)
 }
 
 destroy :: proc() {
