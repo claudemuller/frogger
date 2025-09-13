@@ -4,6 +4,8 @@ import "../utils"
 import "core:fmt"
 import rl "vendor:raylib"
 
+HAS_LEVEL_DEBUG :: #config(DEBUG, false)
+
 MOUSE_SCROLL_SPEED :: 30
 MOUSE_PAN_SPEED :: 500
 

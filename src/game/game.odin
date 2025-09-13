@@ -93,10 +93,10 @@ update :: proc(gmem: ^common.Memory) {
 		if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
 		if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
 		if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
-		if .RIGHT_FACE_UP in gmem.input.gamepad.btns do gmem.player.vel.y = -PLAYER_SPEED
-		if .RIGHT_FACE_DOWN in gmem.input.gamepad.btns do gmem.player.vel.y = PLAYER_SPEED
-		if .RIGHT_FACE_LEFT in gmem.input.gamepad.btns do gmem.player.vel.x = -PLAYER_SPEED
-		if .RIGHT_FACE_RIGHT in gmem.input.gamepad.btns do gmem.player.vel.x = PLAYER_SPEED
+		if .LEFT_FACE_UP in gmem.input.gamepad.btns do gmem.player.vel.y = -PLAYER_SPEED
+		if .LEFT_FACE_DOWN in gmem.input.gamepad.btns do gmem.player.vel.y = PLAYER_SPEED
+		if .LEFT_FACE_LEFT in gmem.input.gamepad.btns do gmem.player.vel.x = -PLAYER_SPEED
+		if .LEFT_FACE_RIGHT in gmem.input.gamepad.btns do gmem.player.vel.x = PLAYER_SPEED
 
 		if gmem.player.vel.y != 0 || gmem.player.vel.x != 0 do rl.PlaySound(gmem.sound["jump"])
 
@@ -127,19 +127,6 @@ update :: proc(gmem: ^common.Memory) {
 				e.pos.x = common.WINDOW_WIDTH / 2
 			} else if e.pos.x >= common.WINDOW_WIDTH / 2 {
 				e.pos.x = -f32(e.size[0])
-			}
-
-			when HAS_LEVEL_DEBUG {
-				if e.texture_id == "sedan-purple" {
-					fmt.printf(
-						"%v %v %v %v\n%v\n",
-						e.size[0],
-						common.SCALE,
-						gmem.level.num_tiles_row,
-						f32(e.size[0]) * f32(common.SCALE * gmem.level.num_tiles_row),
-						e,
-					)
-				}
 			}
 
 			e_rect := rl.Rectangle {
@@ -176,6 +163,8 @@ update :: proc(gmem: ^common.Memory) {
 				}
 
 				if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+					fmt.println("vehicles collided")
+
 					e.vel.x *= 0.5
 					e.timer = e.backoff_duration
 					e.backoff = true
@@ -198,10 +187,14 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 	case .WINNER:
-		rl.StopMusicStream(gmem.music["traffic"])
-		os.exit(0)
+		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
+			common.push_state(gmem, .MAIN_MENU)
+		}
 
 	case .GAME_OVER:
+		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
+			common.push_state(gmem, .MAIN_MENU)
+		}
 
 	case .SHUTDOWN:
 	}
@@ -269,47 +262,11 @@ render :: proc(gmem: ^common.Memory) {
 		}
 
 		for o, i in level.layers[.OBJECTS].entities {
-			w := f32(o.size[0])
-			if o.fliph do w *= -1
-
-			h := f32(o.size[1])
-			if o.flipv do h *= -1
-
-			rl.DrawTexturePro(
-				common.get_texture(gmem.textures, o.texture_id),
-				{f32(o.srcpos.x), f32(o.srcpos.y), w, h},
-				{
-					f32(o.pos.x * common.SCALE),
-					f32(o.pos.y * common.SCALE),
-					f32(o.size[0] * common.SCALE),
-					f32(o.size[1] * common.SCALE),
-				},
-				{0, 0},
-				0,
-				rl.WHITE,
-			)
+			draw_entity(gmem.textures, o)
 		}
 
 		for e, i in level.layers[.ENEMIES].entities {
-			w := f32(e.size[0])
-			if e.fliph do w *= -1
-
-			h := f32(e.size[1])
-			if e.flipv do h *= -1
-
-			rl.DrawTexturePro(
-				common.get_texture(gmem.textures, e.texture_id),
-				{f32(e.srcpos.x), f32(e.srcpos.y), w, h},
-				{
-					f32(e.pos.x * common.SCALE),
-					f32(e.pos.y * common.SCALE),
-					f32(e.size[0] * common.SCALE),
-					f32(e.size[1] * common.SCALE),
-				},
-				{0, 0},
-				0,
-				rl.WHITE,
-			)
+			draw_entity(gmem.textures, e)
 
 			when HAS_COLLIDERS {
 				rl.DrawRectangleLines(
@@ -317,6 +274,24 @@ render :: proc(gmem: ^common.Memory) {
 					i32(e.pos.y * common.SCALE),
 					i32(e.collider[0] * common.SCALE),
 					i32(e.collider[1] * common.SCALE),
+					rl.RED,
+				)
+
+				font_size := f32(18)
+				rl.DrawTextEx(
+					gmem.fonts["vt323"],
+					fmt.ctprintf("%v:%v", e.pos.x, e.pos.y),
+					{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE - 20},
+					font_size,
+					1,
+					rl.RED,
+				)
+				rl.DrawTextEx(
+					gmem.fonts["vt323"],
+					fmt.ctprintf("%v:%v", e.collider[0], e.collider[1]),
+					{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE + f32(e.size[1]) + 25},
+					font_size,
+					1,
 					rl.RED,
 				)
 			}
@@ -351,6 +326,8 @@ render :: proc(gmem: ^common.Memory) {
 		ui.render(gmem)
 
 	case .WINNER:
+		rl.StopMusicStream(gmem.music["traffic"])
+
 		win_w := f32(600)
 		win_h := f32(140)
 		win_x := i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5)
@@ -358,7 +335,7 @@ render :: proc(gmem: ^common.Memory) {
 
 		ui.drawWin(gmem, win_x, win_y, i32(win_w), i32(win_h))
 
-		header := cstring("Game Over")
+		header := cstring("You Win!")
 		header_w := rl.MeasureText(header, ui.FONT_SIZE_HEADER)
 		rl.DrawText(
 			header,
@@ -368,7 +345,7 @@ render :: proc(gmem: ^common.Memory) {
 			rl.DARKGRAY,
 		)
 
-		inst := cstring("You win! Moving to next level.")
+		inst := cstring("Moving to next level.\nPress <space> or <left_click> when ready.")
 		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
 		rl.DrawText(
 			inst,
@@ -396,7 +373,7 @@ render :: proc(gmem: ^common.Memory) {
 			rl.DARKGRAY,
 		)
 
-		inst := cstring("Game Over! Press <space> or press <left_click> to play again.")
+		inst := cstring("Press <space> or <left_click> to play again.")
 		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
 		rl.DrawText(
 			inst,
@@ -411,6 +388,29 @@ render :: proc(gmem: ^common.Memory) {
 
 	rl.EndDrawing()
 }
+
+draw_entity :: proc(textures: map[string]rl.Texture2D, e: common.Entity) {
+	w := f32(e.size[0])
+	if e.fliph do w *= -1
+
+	h := f32(e.size[1])
+	if e.flipv do h *= -1
+
+	rl.DrawTexturePro(
+		common.get_texture(textures, e.texture_id),
+		{f32(e.srcpos.x), f32(e.srcpos.y), w, h},
+		{
+			f32(e.pos.x * common.SCALE),
+			f32(e.pos.y * common.SCALE),
+			f32(e.size[0] * common.SCALE),
+			f32(e.size[1] * common.SCALE),
+		},
+		{0, 0},
+		0,
+		rl.WHITE,
+	)
+}
+
 
 boot_game :: proc(gmem: ^common.Memory) {
 	BOOT_TIME :: 10 // Seconds
