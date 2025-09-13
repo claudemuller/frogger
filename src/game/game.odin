@@ -128,25 +128,25 @@ update :: proc(gmem: ^common.Memory) {
 		// 	)
 		// }
 
-		fmt.println("update_len:", len(gmem.level.layers[.ENEMIES].entities))
-
 		for &e, i in gmem.level.layers[.ENEMIES].entities {
 			e.pos += e.vel
 			if e.pos.x <= -f32(e.size[0]) {
-				e.pos.x = -f32(e.size[0])
+				e.pos.x = common.WINDOW_WIDTH / 2
 			} else if e.pos.x >= common.WINDOW_WIDTH / 2 {
 				e.pos.x = -f32(e.size[0])
 			}
 
-			if e.texture_id == "sedan-purple" {
-				fmt.printf(
-					"%v %v %v %v\n%v\n",
-					e.size[0],
-					common.SCALE,
-					gmem.level.num_tiles_row,
-					f32(e.size[0]) * f32(common.SCALE * gmem.level.num_tiles_row),
-					e,
-				)
+			when HAS_LEVEL_DEBUG {
+				if e.texture_id == "sedan-purple" {
+					fmt.printf(
+						"%v %v %v %v\n%v\n",
+						e.size[0],
+						common.SCALE,
+						gmem.level.num_tiles_row,
+						f32(e.size[0]) * f32(common.SCALE * gmem.level.num_tiles_row),
+						e,
+					)
+				}
 			}
 
 			// e_rect := rl.Rectangle {
@@ -275,16 +275,12 @@ render :: proc(gmem: ^common.Memory) {
 			)
 		}
 
-		fmt.println("render_len:", len(gmem.level.layers[.ENEMIES].entities))
-
 		for e, i in level.layers[.ENEMIES].entities {
 			w := f32(e.size[0])
 			if e.fliph do w *= -1
 
 			h := f32(e.size[1])
 			if e.flipv do h *= -1
-
-			fmt.printf("%#v ", e.texture_id)
 
 			rl.DrawTexturePro(
 				common.get_texture(gmem.textures, e.texture_id),
