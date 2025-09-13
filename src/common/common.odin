@@ -22,6 +22,7 @@ WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 
 Vec2 :: [2]f32
 Vec2u :: [2]u32
+Vec2i :: [2]i32
 
 Entity :: struct {
 	pos:              Vec2,
@@ -44,11 +45,30 @@ LayerType :: enum {
 	PLAYER,
 	UI,
 }
+
 Level :: struct {
-	enemy_speed: f32,
-	enemies:     []Entity,
-	tiles:       [NUM_TILES]u8,
-	layers:      map[LayerType]int,
+	tile_width:    int,
+	tile_height:   int,
+	num_tiles_row: int,
+	num_tiles_col: int,
+	enemy_speed:   f32,
+	enemies:       []Entity,
+	layers:        map[LayerType]Layer,
+}
+
+Layer :: struct {
+	visible: bool,
+	tiles:   ^[dynamic]Tile,
+}
+
+Tile :: struct {
+	pos:        Vec2i,
+	size:       Vec2i,
+	srcpos:     Vec2i,
+	fliph:      bool,
+	flipv:      bool,
+	flipd:      bool,
+	texture_id: string,
 }
 
 Memory :: struct {
@@ -63,27 +83,11 @@ Memory :: struct {
 	player:       Entity,
 }
 
-// Tileset :: struct {
-// 	columns:     int,
-// 	image:       string,
-// 	imageheight: int,
-// 	imagewidth:  int,
-// 	margin:      int,
-// 	name:        string,
-// 	spacing:     int,
-// 	tilecount:   int,
-// 	tileheight:  int,
-// 	tilewidth:   int,
-// 	texture_id:  string,
-// 	// type:        string, // enum - tileset
-// 	// grid:        Grid,
-// 	// tiles:       [dynamic]Tile,
-// }
-
 load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 	// TODO:(lukefilewalker) check if the file for "level" exists
 	fname := "data/level1.json"
 
+	// Load level data
 	jsonData, ok := os.read_entire_file(fname)
 	if !ok {
 		fmt.printf("error reading file: %s\n", fname)
@@ -96,7 +100,8 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 		return false
 	}
 
-	tilesets := make([dynamic]tiled.Tileset, 0, len(level.tilesets))
+	// Load tileset data
+	tilesets := make(map[int]tiled.Tileset, len(level.tilesets))
 
 	for t in level.tilesets {
 		fname := strings.concatenate({"data/", t.source})
@@ -112,12 +117,41 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 			return false
 		}
 
-		append(&tilesets, tileset)
+		tilesets[t.firstgid] = tileset
+
+		// append(&tilesets, tileset)
 	}
 
-	fmt.printf("\n\n%v\n\n", level)
-	fmt.printf("\n\n%v\n\n", tilesets)
+	// Load the tilesets' textures
+	for firstgid, &tileset in tilesets {
+		if tileset.image != "" {
+			fnameparts := strings.split(tileset.image, "/")
+			fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
+			fname := strings.join(fnameparts[1:], "/")
+			id := fparts[0]
+			fmt.printf("%v\n", id)
 
+			if ok := load_texture(&gmem.textures, id, fname); !ok {
+				fmt.eprint("failed to load texture: %s\n", tileset.image)
+			}
+
+			tileset.texture_id = strings.clone(id)
+		} else {
+			for t in tileset.tiles {
+				fnameparts := strings.split(t.image, "/")
+				fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
+				fname := strings.join(fnameparts[1:], "/")
+				id := fparts[0]
+				fmt.printf("%v\n", id)
+
+				if ok := load_texture(&gmem.textures, id, fname); !ok {
+					fmt.eprint("failed to load texture: %s\n", t.image)
+				}
+
+				tileset.texture_id = strings.clone(id)
+			}
+		}
+	}
 
 	return tiled_to_game_state(gmem, &level, tilesets)
 }
@@ -125,33 +159,75 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 tiled_to_game_state :: proc(
 	gmem: ^Memory,
 	level: ^tiled.Level,
-	tilesets: [dynamic]tiled.Tileset,
+	tilesets: map[int]tiled.Tileset,
 ) -> bool {
-	// Load the tilesets' textures
-	for tileset in tilesets {
-		if tileset.image != "" {
-			fnameparts := strings.split(tileset.image, "/")
-			fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
-			fname := strings.join(fnameparts[1:], "/")
-			id := fparts[0]
+	gmem.level.tile_width = level.tilewidth
+	gmem.level.tile_height = level.tileheight
+	gmem.level.num_tiles_row = level.width
+	gmem.level.num_tiles_col = level.height
 
-			if ok := load_texture(&gmem.textures, id, fname); !ok {
-				fmt.eprint("failed to load texture: %s\n", tileset.image)
+	for l in level.layers {
+		switch l.name {
+		case "Terrain":
+			num_tiles := l.width * l.height
+			gmem.level.layers[.TERRAIN] = {
+				visible = l.visible,
+				tiles   = new([dynamic]Tile),
 			}
 
-			// tileset.texture_id = id
-		} else {
-			for t in tileset.tiles {
-				fnameparts := strings.split(tileset.image, "/")
-				fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
-				fname := strings.join(fnameparts[1:], "/")
-				id := fparts[0]
+			for t, i in l.data {
+				H_FLIP := 0x80000000
+				V_FLIP := 0x40000000
+				D_FLIP := 0x20000000
+				ID_MASK := 0x1FFFFFFF
 
-				if ok := load_texture(&gmem.textures, id, fname); !ok {
-					fmt.eprint("failed to load texture: %s\n", t.image)
+				gid := t & ID_MASK
+				fliph := (t & H_FLIP) != 0
+				flipv := (t & V_FLIP) != 0
+				flipd := (t & D_FLIP) != 0
+
+				w := i32(tilesets[l.id].tilewidth)
+				h := i32(tilesets[l.id].tileheight)
+				x := i32(i % l.width) * w
+				y := i32(i / l.width) * h
+				srcx := i32((gid - 1) % l.width) * w
+				srcy := i32((gid - 1) / l.width) * h
+
+				a := tilesets[l.id]
+				b := a.texture_id
+
+				append(
+					gmem.level.layers[.TERRAIN].tiles,
+					Tile {
+						pos = {x * SCALE, y * SCALE},
+						size = {w, h},
+						srcpos = {srcx, srcy},
+						fliph = fliph,
+						flipv = flipv,
+						flipd = flipd,
+						texture_id = tilesets[l.id].texture_id,
+					},
+				)
+			}
+
+		case "Obstacles":
+			gmem.level.layers[.OBJECTS] = {
+				visible = l.visible,
+			}
+
+		case "Entities":
+			for e in l.objects {
+				if e.type == "Enemy" {
+					gmem.level.layers[.ENEMIES] = {
+						visible = l.visible,
+					}
 				}
 
-				// tileset.texture_id = id
+				if e.type == "Trigger" {
+					gmem.level.layers[.TRIGGERS] = {
+						visible = l.visible,
+					}
+				}
 			}
 		}
 	}
@@ -193,10 +269,16 @@ load_texture :: proc(texs: ^map[string]rl.Texture2D, id, fname: string) -> bool 
 }
 
 get_texture :: proc(texs: map[string]rl.Texture2D, id: string) -> rl.Texture2D {
-	t, ok := texs[id]
-	if !ok {
-		fmt.printf("failed to get texture: %s\n%v\n", id, texs)
+	if id == "" {
+		fmt.printf("failed to get texture: '%s'\n%v\n", id, texs)
 		return texs["NO_TEXTURE"]
 	}
+
+	t, ok := texs[id]
+	if !ok {
+		fmt.printf("failed to get texture: '%s'\n%v\n", id, texs)
+		return texs["NO_TEXTURE"]
+	}
+
 	return t
 }

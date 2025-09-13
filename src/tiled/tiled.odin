@@ -56,6 +56,7 @@ Layer :: struct {
 	type:      string, // should be enum
 	visible:   bool,
 	width:     int,
+	height:    int,
 	x:         int,
 	y:         int,
 	draworder: string, // should be enum
@@ -95,6 +96,7 @@ Grid :: struct {
 }
 
 Tileset :: struct {
+	texture_id:  string,
 	columns:     int,
 	image:       string,
 	imageheight: int,

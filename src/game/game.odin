@@ -38,10 +38,7 @@ setup :: proc(gmem: ^common.Memory) {
 		fmt.panicf("Error loading level: %d", 1)
 	}
 
-	// ui.setup(gmem)
-
-	fmt.printf("\n%v\n\n", gmem)
-	os.exit(0)
+	ui.setup(gmem)
 
 	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
 	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
@@ -50,10 +47,6 @@ setup :: proc(gmem: ^common.Memory) {
 	// 	tilepos = {midway_x_tile, bottom_y_tile},
 	// 	size    = {20, 20},
 	// }
-}
-
-getCurrentLevel :: proc(gmem: ^common.Memory) -> ^common.Level {
-	return &gmem.levels[gmem.currentLevel]
 }
 
 run :: proc(gmem: ^common.Memory) {
@@ -113,7 +106,7 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 		// Update enemies
-		for &e, i in getCurrentLevel(gmem).enemies {
+		for &e, i in gmem.level.enemies {
 			e.pos += e.vel
 			if e.pos.x < -common.TILE_SIZE do e.pos.x = common.WINDOW_WIDTH
 			if e.pos.x > common.WINDOW_WIDTH do e.pos.x = -common.TILE_SIZE
@@ -137,7 +130,7 @@ update :: proc(gmem: ^common.Memory) {
 				e.backoff = false
 			}
 
-			for &e_other, j in getCurrentLevel(gmem).enemies {
+			for &e_other, j in gmem.level.enemies {
 				if i == j || e.pos.y != e_other.pos.y {
 					continue
 				}
@@ -199,21 +192,33 @@ render :: proc(gmem: ^common.Memory) {
 
 	case .PLAYING:
 		// Render tilemap
-		level := getCurrentLevel(gmem)
-		// for l in level.layers {
-		// 	for d, i in l.data {
-		// 		x := i % l.width
-		// 		y := i / l.width
-		//
-		// 		rl.DrawRectangleLines(
-		// 			i32(x),
-		// 			i32(y),
-		// 			i32(level.tilewidth * common.SCALE),
-		// 			i32(level.tileheight * common.SCALE),
-		// 			rl.DARKBLUE,
-		// 		)
-		// 	}
-		// }
+		level := gmem.level
+		for t, i in level.layers[.TERRAIN].tiles {
+			w := f32(t.size[0])
+			h := f32(t.size[1])
+			if t.fliph do w *= -1
+			if t.flipv do h *= -1
+
+			fmt.printf("%v %v\n", w, h)
+
+			rl.DrawTexturePro(
+				common.get_texture(gmem.textures, t.texture_id),
+				{f32(t.srcpos.x), f32(t.srcpos.y), w, h},
+				{
+					f32(t.pos.x),
+					f32(t.pos.y),
+					f32(t.size[0] * common.SCALE),
+					f32(t.size[1] * common.SCALE),
+				},
+				{0, 0},
+				0,
+				rl.WHITE,
+			)
+
+			// if i == level.num_tiles_row * 5 {
+			// 	os.exit(0)
+			// }
+		}
 
 		// for t, i in getCurrentLevel(gmem).tiles {
 		// 	x := f32(i % common.NUM_TILES_IN_ROW) * common.TILE_SIZE
@@ -294,7 +299,7 @@ render :: proc(gmem: ^common.Memory) {
 		}
 
 		// Render enemies
-		for e in getCurrentLevel(gmem).enemies {
+		for e in gmem.level.enemies {
 			src := rl.Rectangle {
 				x      = 0,
 				y      = 0,
@@ -312,7 +317,7 @@ render :: proc(gmem: ^common.Memory) {
 			}
 
 			rl.DrawTexturePro(
-				common.get_tex(gmem.textures, e.texture_id),
+				common.get_texture(gmem.textures, e.texture_id),
 				src,
 				dest,
 				{0, 0},

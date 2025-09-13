@@ -26,10 +26,10 @@ setup :: proc(gmem: ^common.Memory) {
 	rl.UnloadImage(redpx)
 	gmem.textures["NO_TEXTURE"] = redtex
 
-	common.load_tex(&gmem.textures, "dxtrs-games", "res/dxtrs-games.png")
-	common.load_tex(&gmem.textures, "dxtrs-games-gif", "res/dxtrs-games.gif")
-	common.load_tex(&gmem.textures, WIN_DECORATION, "res/window-decoration.png")
-	common.load_tex(&gmem.textures, BUTTON_GREEN, "res/button-green.png")
+	common.load_texture(&gmem.textures, "dxtrs-games", "res/dxtrs-games.png")
+	common.load_texture(&gmem.textures, "dxtrs-games-gif", "res/dxtrs-games.gif")
+	common.load_texture(&gmem.textures, WIN_DECORATION, "res/window-decoration.png")
+	common.load_texture(&gmem.textures, BUTTON_GREEN, "res/button-green.png")
 }
 
 update :: proc(gmem: ^common.Memory) -> bool {
@@ -45,13 +45,13 @@ render :: proc(gmem: ^common.Memory) {
 render_splash :: proc(gmem: ^common.Memory) {
 	s := f32(287 * 0.5)
 	rl.DrawTexture(
-		common.get_tex(gmem.textures, "dxtrs-games"),
+		common.get_texture(gmem.textures, "dxtrs-games"),
 		i32(common.WINDOW_WIDTH * 0.5 - s),
 		i32(common.WINDOW_HEIGHT * 0.5 - s),
 		rl.WHITE,
 	)
 	rl.DrawTexture(
-		common.get_tex(gmem.textures, "dxtrs-games-gif"),
+		common.get_texture(gmem.textures, "dxtrs-games-gif"),
 		i32(common.WINDOW_WIDTH * 0.5 - s),
 		i32(common.WINDOW_HEIGHT * 0.5),
 		rl.WHITE,
