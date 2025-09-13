@@ -5,9 +5,12 @@ import "../tiled"
 import "core:encoding/json"
 import "core:fmt"
 import "core:os"
+import "core:slice"
 import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
+
+HAS_LEVEL_DEBUG :: #config(DEBUG, false)
 
 NUM_TILES_IN_ROW :: 28
 NUM_TILES_IN_COL :: 16
@@ -20,17 +23,28 @@ TILE_SIZE :: SRC_TILE_SIZE * SCALE
 WINDOW_WIDTH :: NUM_TILES_IN_ROW * TILE_SIZE
 WINDOW_HEIGHT :: NUM_TILES_IN_COL * TILE_SIZE
 
+H_FLIP :: 0x80000000
+V_FLIP :: 0x40000000
+D_FLIP :: 0x20000000
+ID_MASK :: 0x1FFFFFFF
+
 Vec2 :: [2]f32
 Vec2u :: [2]u32
 Vec2i :: [2]i32
 
 Entity :: struct {
 	pos:              Vec2,
-	size:             Vec2u,
-	tilepos:          [2]u8,
+	size:             Vec2i,
+	srcpos:           Vec2i,
 	vel:              Vec2,
 	texture_id:       string,
-	collider:         Vec2u,
+	collider:         Vec2i,
+	rotation:         f32,
+	fliph:            bool,
+	flipv:            bool,
+	flipd:            bool,
+	type:             string,
+	name:             string,
 	direction:        string,
 	timer:            f32,
 	backoff:          bool,
@@ -52,13 +66,20 @@ Level :: struct {
 	num_tiles_row: int,
 	num_tiles_col: int,
 	enemy_speed:   f32,
-	enemies:       []Entity,
 	layers:        map[LayerType]Layer,
 }
 
 Layer :: struct {
-	visible: bool,
-	tiles:   ^[dynamic]Tile,
+	visible:  bool,
+	tiles:    ^[dynamic]Tile,
+	entities: ^[dynamic]Entity,
+	triggers: ^[dynamic]Trigger,
+}
+
+Trigger :: struct {
+	pos:  Vec2,
+	size: Vec2i,
+	name: string,
 }
 
 Tile :: struct {
@@ -118,8 +139,6 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 		}
 
 		tilesets[t.firstgid] = tileset
-
-		// append(&tilesets, tileset)
 	}
 
 	// Load the tilesets' textures
@@ -129,7 +148,6 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 			fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
 			fname := strings.join(fnameparts[1:], "/")
 			id := fparts[0]
-			fmt.printf("%v\n", id)
 
 			if ok := load_texture(&gmem.textures, id, fname); !ok {
 				fmt.eprint("failed to load texture: %s\n", tileset.image)
@@ -137,18 +155,17 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 
 			tileset.texture_id = strings.clone(id)
 		} else {
-			for t in tileset.tiles {
+			for &t in tileset.tiles {
 				fnameparts := strings.split(t.image, "/")
 				fparts := strings.split(fnameparts[len(fnameparts) - 1], ".")
 				fname := strings.join(fnameparts[1:], "/")
 				id := fparts[0]
-				fmt.printf("%v\n", id)
 
 				if ok := load_texture(&gmem.textures, id, fname); !ok {
 					fmt.eprint("failed to load texture: %s\n", t.image)
 				}
 
-				tileset.texture_id = strings.clone(id)
+				t.texture_id = strings.clone(id)
 			}
 		}
 	}
@@ -190,16 +207,13 @@ tiled_to_game_state :: proc(
 				h := i32(tilesets[l.id].tileheight)
 				x := i32(i % l.width) * w
 				y := i32(i / l.width) * h
-				srcx := i32((gid - 1) % l.width) * w
-				srcy := i32((gid - 1) / l.width) * h
-
-				a := tilesets[l.id]
-				b := a.texture_id
+				srcx := i32((gid - 1) % gmem.level.num_tiles_row) * w
+				srcy := i32((gid - 1) / gmem.level.num_tiles_row) * h
 
 				append(
 					gmem.level.layers[.TERRAIN].tiles,
 					Tile {
-						pos = {x * SCALE, y * SCALE},
+						pos = {x, y},
 						size = {w, h},
 						srcpos = {srcx, srcy},
 						fliph = fliph,
@@ -212,21 +226,161 @@ tiled_to_game_state :: proc(
 
 		case "Obstacles":
 			gmem.level.layers[.OBJECTS] = {
-				visible = l.visible,
+				visible  = l.visible,
+				entities = new([dynamic]Entity),
 			}
 
-		case "Entities":
-			for e in l.objects {
-				if e.type == "Enemy" {
-					gmem.level.layers[.ENEMIES] = {
-						visible = l.visible,
+			for o, i in l.objects {
+				gid := o.gid & ID_MASK
+				fliph := (o.gid & H_FLIP) != 0
+				flipv := (o.gid & V_FLIP) != 0
+				flipd := (o.gid & D_FLIP) != 0
+
+				texid: int
+				for id in tilesets {
+					if gid >= id {
+						texid = id
+						gid -= id
+						break
 					}
 				}
 
-				if e.type == "Trigger" {
-					gmem.level.layers[.TRIGGERS] = {
-						visible = l.visible,
+				w := i32(o.width)
+				h := i32(o.height)
+				num_tiles_row := tilesets[texid].imagewidth / tilesets[texid].tilewidth
+				srcx := i32((gid) % num_tiles_row) * w
+				srcy := i32((gid) / num_tiles_row) * h
+
+				texture_id := tilesets[texid].texture_id
+				if texture_id == "" {
+					for t in tilesets[texid].tiles {
+						if t.id == gid {
+							texture_id = t.texture_id
+						}
 					}
+				}
+
+				append(
+					gmem.level.layers[.OBJECTS].entities,
+					Entity {
+						pos        = {o.x, o.y - f32(h)}, // Have to compensate on y
+						size       = {w, h},
+						srcpos     = {srcx, srcy},
+						rotation   = o.rotation,
+						name       = o.name,
+						type       = o.type,
+						texture_id = texture_id,
+					},
+				)
+			}
+
+		case "Entities":
+			gmem.level.layers[.ENEMIES] = {
+				visible  = l.visible,
+				entities = new([dynamic]Entity),
+			}
+			gmem.level.layers[.TRIGGERS] = {
+				triggers = new([dynamic]Trigger),
+			}
+
+			for o in l.objects {
+				if o.type == "Enemy" {
+					gid := o.gid & ID_MASK
+					fliph := (o.gid & H_FLIP) != 0
+					flipv := (o.gid & V_FLIP) != 0
+					flipd := (o.gid & D_FLIP) != 0
+
+					keys, err := slice.map_keys(tilesets)
+					slice.reverse_sort(keys)
+					if err != nil {
+						fmt.panicf("borked")
+					}
+
+					texid: int
+					for id in keys {
+						if gid >= id {
+							texid = id
+							gid -= id
+							break
+						}
+					}
+
+					w := i32(o.width)
+					h := i32(o.height)
+
+					texture_id := tilesets[texid].texture_id
+					if texture_id == "" {
+						for t in tilesets[texid].tiles {
+							if t.id == gid {
+								texture_id = t.texture_id
+								break
+							}
+						}
+					}
+
+					when HAS_LEVEL_DEBUG {
+						if o.name == "Car" && texture_id == "tiles" {
+							fmt.println("tilesets:")
+							for k, v in tilesets {
+								fmt.printf("%v: %v\n", k, v)
+							}
+							fmt.println("textures:")
+							for k, v in tilesets {
+								fmt.printf("%v: %v\n", k, v)
+							}
+							fmt.printf("o: %v\n", o)
+							fmt.printf(
+								"texid: %v\nogid: %v\ngid: %v\netxture_id: %v\n",
+								texid,
+								o.gid & ID_MASK,
+								gid,
+								texture_id,
+							)
+							os.exit(1)
+						}
+					}
+
+					vel: Vec2
+					for p in o.properties {
+						if p.name == "Speed" {
+							vel.x = p.value
+							if !fliph {
+								vel.x *= -1
+							}
+						}
+					}
+
+					append(
+						gmem.level.layers[.ENEMIES].entities,
+						Entity {
+							pos        = {o.x, o.y - f32(h)}, // Have to compensate on y
+							size       = {w, h},
+							collider   = {w, h},
+							srcpos     = {0, 0},
+							vel        = vel,
+							rotation   = o.rotation,
+							fliph      = fliph,
+							flipv      = flipv,
+							flipd      = flipd,
+							name       = o.name,
+							type       = o.type,
+							texture_id = texture_id,
+						},
+					)
+				}
+
+				if o.type == "Trigger" {
+					w := i32(o.width)
+					h := i32(o.height)
+
+					append(
+						gmem.level.layers[.TRIGGERS].triggers,
+						Trigger {
+							pos  = {o.x, o.y - f32(h)}, // Have to compensate on y
+							size = {w, h},
+							name = o.name,
+						},
+					)
 				}
 			}
 		}

@@ -84,6 +84,7 @@ Level :: struct {
 
 Tile :: struct {
 	id:          int,
+	texture_id:  string,
 	image:       string,
 	imageheight: int,
 	imagewidth:  int,

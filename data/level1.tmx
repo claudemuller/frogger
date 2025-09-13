@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="28" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="52">
  <tileset firstgid="1" source="tiles.tsx"/>
- <tileset firstgid="65" source="entities.tsx"/>
+ <tileset firstgid="21" source="entities.tsx"/>
  <layer id="1" name="Terrain" width="28" height="16">
   <data encoding="csv">
 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -59,42 +59,42 @@
   <object id="50" name="Dustbin" gid="4" x="225" y="18.5" width="32" height="32"/>
  </objectgroup>
  <objectgroup id="2" name="Entities">
-  <object id="1" name="Car" type="Enemy" gid="65" x="760.468" y="121.386" width="34" height="24">
+  <object id="1" name="Car" type="Enemy" gid="21" x="760.468" y="121.386" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="2" name="Car" type="Enemy" gid="2147483716" x="479.539" y="283.901" width="34" height="24">
+  <object id="2" name="Car" type="Enemy" gid="2147483672" x="479.539" y="283.901" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="8" name="Truck" type="Enemy" gid="70" x="721.039" y="377.65" width="64" height="32">
+  <object id="8" name="Truck" type="Enemy" gid="26" x="721.039" y="377.65" width="64" height="32">
    <properties>
     <property name="Speed" type="float" value="1"/>
    </properties>
   </object>
-  <object id="9" name="Truck" type="Enemy" gid="70" x="124.662" y="153.013" width="64" height="32">
+  <object id="9" name="Truck" type="Enemy" gid="26" x="124.662" y="153.013" width="64" height="32">
    <properties>
     <property name="Speed" type="float" value="1"/>
    </properties>
   </object>
-  <object id="10" name="Car" type="Enemy" gid="66" x="343.588" y="119.805" width="34" height="24">
+  <object id="10" name="Car" type="Enemy" gid="22" x="343.588" y="119.805" width="34" height="24">
+   <properties>
+    <property name="Speed" type="float" value="1.3"/>
+   </properties>
+  </object>
+  <object id="11" name="Car" type="Enemy" gid="25" x="184.802" y="410.824" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
   </object>
-  <object id="11" name="Car" type="Enemy" gid="69" x="184.802" y="410.824" width="34" height="24">
+  <object id="12" name="Car" type="Enemy" gid="27" x="518.837" y="410.293" width="34" height="24">
    <properties>
-    <property name="Speed" type="float" value="1.2"/>
+    <property name="Speed" type="float" value="1.3"/>
    </properties>
   </object>
-  <object id="12" name="Car" type="Enemy" gid="71" x="518.837" y="410.293" width="34" height="24">
-   <properties>
-    <property name="Speed" type="float" value="1.2"/>
-   </properties>
-  </object>
-  <object id="13" name="Car" type="Enemy" gid="2147483715" x="294.2" y="249.383" width="34" height="24">
+  <object id="13" name="Car" type="Enemy" gid="2147483671" x="294.2" y="249.383" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1.2"/>
    </properties>
