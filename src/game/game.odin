@@ -49,6 +49,7 @@ run :: proc(gmem: ^common.Memory) {
 		update(gmem)
 		render(gmem)
 	}
+	// destroy()
 }
 
 update :: proc(gmem: ^common.Memory) {
@@ -88,10 +89,10 @@ update :: proc(gmem: ^common.Memory) {
 		if .RIGHT_FACE_RIGHT in gmem.input.gamepad.btns do gmem.player.vel.x = PLAYER_SPEED
 
 		// Smooth motion
-		gmem.player.vel.x = gmem.input.kb.axis.x
-		gmem.player.vel.y = gmem.input.kb.axis.y
-		gmem.player.vel.x = gmem.input.gamepad.laxis.x
-		gmem.player.vel.y = gmem.input.gamepad.laxis.y
+		// gmem.player.vel.x = gmem.input.kb.axis.x
+		// gmem.player.vel.y = gmem.input.kb.axis.y
+		// gmem.player.vel.x = gmem.input.gamepad.laxis.x
+		// gmem.player.vel.y = gmem.input.gamepad.laxis.y
 
 		gmem.player.pos += gmem.player.vel
 
@@ -101,10 +102,10 @@ update :: proc(gmem: ^common.Memory) {
 		if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
 
 		player_rect := rl.Rectangle {
-			x      = gmem.player.pos.x,
-			y      = gmem.player.pos.y,
-			width  = f32(gmem.player.size[0]),
-			height = f32(gmem.player.size[1]),
+			x      = gmem.player.pos.x * common.SCALE,
+			y      = gmem.player.pos.y * common.SCALE,
+			width  = f32(gmem.player.collider[0] * common.SCALE),
+			height = f32(gmem.player.collider[1] * common.SCALE),
 		}
 
 		// Update enemies
@@ -130,13 +131,14 @@ update :: proc(gmem: ^common.Memory) {
 			}
 
 			e_rect := rl.Rectangle {
-				x      = e.pos.x,
-				y      = e.pos.y,
-				width  = f32(e.collider[1] * common.SCALE),
-				height = f32(e.collider[0] * common.SCALE),
+				x      = e.pos.x * common.SCALE,
+				y      = e.pos.y * common.SCALE,
+				width  = f32(e.collider[0] * common.SCALE),
+				height = f32(e.collider[1] * common.SCALE),
 			}
 
 			if rl.CheckCollisionRecs(player_rect, e_rect) {
+				common.push_state(gmem, .GAME_OVER)
 				fmt.println("collision")
 			}
 
@@ -149,15 +151,16 @@ update :: proc(gmem: ^common.Memory) {
 			}
 
 			for &e_other, j in gmem.level.layers[.ENEMIES].entities {
-				if i == j || e.pos.y != e_other.pos.y {
+				y_tolerance := math.abs(e.pos.y - e_other.pos.y)
+				if i == j || y_tolerance <= 1 || y_tolerance >= -1 {
 					continue
 				}
 
 				e_other_rect := rl.Rectangle {
-					x      = e_other.pos.x,
-					y      = e_other.pos.y,
-					width  = f32(e_other.collider[1] * common.SCALE),
-					height = f32(e_other.collider[0] * common.SCALE),
+					x      = e_other.pos.x * common.SCALE,
+					y      = e_other.pos.y * common.SCALE,
+					width  = f32(e_other.collider[0] * common.SCALE),
+					height = f32(e_other.collider[1] * common.SCALE),
 				}
 
 				if rl.CheckCollisionRecs(e_other_rect, e_rect) {
@@ -167,6 +170,23 @@ update :: proc(gmem: ^common.Memory) {
 				}
 			}
 		}
+
+		for t in gmem.level.layers[.TRIGGERS].triggers {
+			if t.name == "Win" {
+				t_rect := rl.Rectangle {
+					x      = t.pos.x * common.SCALE,
+					y      = t.pos.y * common.SCALE,
+					width  = f32(t.size[0] * common.SCALE),
+					height = f32(t.size[1] * common.SCALE),
+				}
+				if rl.CheckCollisionRecs(player_rect, t_rect) {
+					common.push_state(gmem, .WINNER)
+				}
+			}
+		}
+
+	case .WINNER:
+		os.exit(0)
 
 	case .GAME_OVER:
 	}
@@ -280,8 +300,8 @@ render :: proc(gmem: ^common.Memory) {
 				rl.DrawRectangleLines(
 					i32(e.pos.x * common.SCALE),
 					i32(e.pos.y * common.SCALE),
-					i32(e.size[0] * common.SCALE),
-					i32(e.size[1] * common.SCALE),
+					i32(e.collider[0] * common.SCALE),
+					i32(e.collider[1] * common.SCALE),
 					rl.RED,
 				)
 			}
@@ -306,14 +326,42 @@ render :: proc(gmem: ^common.Memory) {
 			rl.DrawRectangleLines(
 				i32(gmem.player.pos.x * common.SCALE),
 				i32(gmem.player.pos.y * common.SCALE),
-				i32(gmem.player.size[1] * common.SCALE),
-				i32(gmem.player.size[0] * common.SCALE),
+				i32(gmem.player.collider[1] * common.SCALE),
+				i32(gmem.player.collider[0] * common.SCALE),
 				rl.RED,
 			)
 		}
 
 		// Render UI
 		ui.render(gmem)
+
+	case .WINNER:
+		win_w := f32(600)
+		win_h := f32(140)
+		win_x := i32(common.WINDOW_WIDTH * 0.5 - win_w * 0.5)
+		win_y := i32(common.WINDOW_HEIGHT * 0.5 - win_h * 0.5)
+
+		ui.drawWin(gmem, win_x, win_y, i32(win_w), i32(win_h))
+
+		header := cstring("Game Over")
+		header_w := rl.MeasureText(header, ui.FONT_SIZE_HEADER)
+		rl.DrawText(
+			header,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(header_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER * 0.5 - 10,
+			ui.FONT_SIZE_HEADER,
+			rl.DARKGRAY,
+		)
+
+		inst := cstring("You win! Moving to next level.")
+		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
+		rl.DrawText(
+			inst,
+			i32(common.WINDOW_WIDTH * 0.5 - f32(inst_w) * 0.5),
+			win_y + ui.FONT_SIZE_HEADER + 40,
+			ui.FONT_SIZE_BODY,
+			rl.DARKGRAY,
+		)
 
 	case .GAME_OVER:
 		win_w := f32(600)
@@ -333,7 +381,7 @@ render :: proc(gmem: ^common.Memory) {
 			rl.DARKGRAY,
 		)
 
-		inst := cstring("Press <space> or press <left_click> to play again.")
+		inst := cstring("Game Over! Press <space> or press <left_click> to play again.")
 		inst_w := rl.MeasureText(inst, ui.FONT_SIZE_BODY)
 		rl.DrawText(
 			inst,
