@@ -105,6 +105,12 @@ Memory :: struct {
 }
 
 load_level :: proc(gmem: ^Memory, level: u8) -> bool {
+	// Load player
+	gmem.player.texture_id = "player"
+	load_texture(&gmem.textures, gmem.player.texture_id, "res/frogger.png")
+	gmem.player.pos = {WINDOW_WIDTH / 4, WINDOW_HEIGHT / 2 - 32}
+	gmem.player.size = {32, 32}
+
 	// TODO:(lukefilewalker) check if the file for "level" exists
 	fname := "data/level1.json"
 

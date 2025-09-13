@@ -81,53 +81,31 @@ update :: proc(gmem: ^common.Memory) {
 
 	case .PLAYING:
 		// Update player
-		// gmem.player.vel = 0.0
-		//
-		// if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
-		// if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
-		// if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
-		// if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
-		//
-		// gmem.player.pos += gmem.player.vel
-		//
-		// if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
-		// if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
-		// if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
-		// if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
-		//
+		gmem.player.vel = 0.0
+
+		if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
+		if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
+		if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
+		if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
+
+		gmem.player.pos += gmem.player.vel
+
+		if gmem.player.pos.x < 0 do gmem.player.pos.x = 0
+		if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
+		if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
+		if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
+
 		// gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
 		// gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
-		//
-		// player_rect := rl.Rectangle {
-		// 	x      = gmem.player.pos.x,
-		// 	y      = gmem.player.pos.y,
-		// 	width  = f32(gmem.player.size[0]),
-		// 	height = f32(gmem.player.size[1]),
-		// }
+
+		player_rect := rl.Rectangle {
+			x      = gmem.player.pos.x,
+			y      = gmem.player.pos.y,
+			width  = f32(gmem.player.size[0]),
+			height = f32(gmem.player.size[1]),
+		}
 
 		// Update enemies
-		// for e, i in level.layers[.ENEMIES].entities {
-		// 	w := f32(e.size[0])
-		// 	if e.fliph do w *= -1
-		//
-		// 	h := f32(e.size[1])
-		// 	if e.flipv do h *= -1
-		//
-		// 	rl.DrawTexturePro(
-		// 		common.get_texture(gmem.textures, e.texture_id),
-		// 		{f32(e.srcpos.x), f32(e.srcpos.y), w, h},
-		// 		{
-		// 			f32(e.pos.x * common.SCALE),
-		// 			f32(e.pos.y * common.SCALE),
-		// 			f32(e.size[0] * common.SCALE),
-		// 			f32(e.size[1] * common.SCALE),
-		// 		},
-		// 		{0, 0},
-		// 		0,
-		// 		rl.WHITE,
-		// 	)
-		// }
-
 		for &e, i in gmem.level.layers[.ENEMIES].entities {
 			e.pos += e.vel
 			if e.pos.x <= -f32(e.size[0]) {
@@ -149,24 +127,24 @@ update :: proc(gmem: ^common.Memory) {
 				}
 			}
 
-			// e_rect := rl.Rectangle {
-			// 	x      = e.pos.x,
-			// 	y      = e.pos.y,
-			// 	width  = f32(e.collider[1] * common.SCALE),
-			// 	height = f32(e.collider[0] * common.SCALE),
-			// }
+			e_rect := rl.Rectangle {
+				x      = e.pos.x,
+				y      = e.pos.y,
+				width  = f32(e.collider[1] * common.SCALE),
+				height = f32(e.collider[0] * common.SCALE),
+			}
 
 			// if rl.CheckCollisionRecs(player_rect, e_rect) {
 			// 	fmt.println("collision")
 			// }
 
-			// if e.timer > 0 {
-			// 	e.timer -= rl.GetFrameTime()
-			// }
-			// if e.timer <= 0 && e.backoff {
-			// 	e.vel.x *= 2.0
-			// 	e.backoff = false
-			// }
+			if e.timer > 0 {
+				e.timer -= rl.GetFrameTime()
+			}
+			if e.timer <= 0 && e.backoff {
+				e.vel.x *= 2.0
+				e.backoff = false
+			}
 
 			for &e_other, j in gmem.level.layers[.ENEMIES].entities {
 				if i == j || e.pos.y != e_other.pos.y {
@@ -180,11 +158,11 @@ update :: proc(gmem: ^common.Memory) {
 					height = f32(e_other.collider[0] * common.SCALE),
 				}
 
-				// if rl.CheckCollisionRecs(e_other_rect, e_rect) {
-				// 	e.vel.x *= 0.5
-				// 	e.timer = e.backoff_duration
-				// 	e.backoff = true
-				// }
+				if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+					e.vel.x *= 0.5
+					e.timer = e.backoff_duration
+					e.backoff = true
+				}
 			}
 		}
 
@@ -309,30 +287,30 @@ render :: proc(gmem: ^common.Memory) {
 			// }
 		}
 
-	// Render player
-	// rl.DrawTexturePro(
-	// 	common.get_tex(gmem.textures, "player"),
-	// 	{},
-	// 	{
-	// 		x = f32(gmem.player.pos.x),
-	// 		y = f32(gmem.player.pos.y),
-	// 		width = f32(gmem.player.size[1] * common.SCALE),
-	// 		height = f32(gmem.player.size[0] * common.SCALE),
-	// 	},
-	// 	{0, 0},
-	// 	0,
-	// 	rl.RED,
-	// )
+		// Render player
+		rl.DrawTexturePro(
+			common.get_texture(gmem.textures, gmem.player.texture_id),
+			{0, 0, 32, 32},
+			{
+				x = f32(gmem.player.pos.x * common.SCALE),
+				y = f32(gmem.player.pos.y * common.SCALE),
+				width = f32(gmem.player.size[1] * common.SCALE),
+				height = f32(gmem.player.size[0] * common.SCALE),
+			},
+			{0, 0},
+			0,
+			rl.WHITE,
+		)
 
-	// when HAS_LEVEL_DEBUG {
-	// 	rl.DrawRectangleLines(
-	// 		i32(gmem.player.pos.x),
-	// 		i32(gmem.player.pos.y),
-	// 		i32(gmem.player.size[1] * common.SCALE),
-	// 		i32(gmem.player.size[0] * common.SCALE),
-	// 		rl.RED,
-	// 	)
-	// }
+		when HAS_LEVEL_DEBUG {
+			rl.DrawRectangleLines(
+				i32(gmem.player.pos.x * common.SCALE),
+				i32(gmem.player.pos.y * common.SCALE),
+				i32(gmem.player.size[1] * common.SCALE),
+				i32(gmem.player.size[0] * common.SCALE),
+				rl.RED,
+			)
+		}
 
 	// Render UI
 	// ui.render(gmem)
