@@ -207,11 +207,6 @@ tiled_to_game_state :: proc(
 			}
 
 			for t, i in l.data {
-				H_FLIP := 0x80000000
-				V_FLIP := 0x40000000
-				D_FLIP := 0x20000000
-				ID_MASK := 0x1FFFFFFF
-
 				gid := t & ID_MASK
 				fliph := (t & H_FLIP) != 0
 				flipv := (t & V_FLIP) != 0
