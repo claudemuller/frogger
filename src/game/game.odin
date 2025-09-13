@@ -13,6 +13,7 @@ import "core:strings"
 import rl "vendor:raylib"
 
 HAS_LEVEL_DEBUG :: #config(DEBUG, false)
+HAS_COLLIDERS :: #config(COLLIDERS, false)
 
 PLAYER_SPEED :: 25
 
@@ -38,15 +39,8 @@ setup :: proc(gmem: ^common.Memory) {
 		fmt.panicf("Error loading level: %d", 1)
 	}
 
+	input.setup()
 	ui.setup(gmem)
-
-	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
-	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
-	// gmem.player = common.Entity {
-	// 	pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
-	// 	tilepos = {midway_x_tile, bottom_y_tile},
-	// 	size    = {20, 20},
-	// }
 }
 
 run :: proc(gmem: ^common.Memory) {
@@ -83,10 +77,21 @@ update :: proc(gmem: ^common.Memory) {
 		// Update player
 		gmem.player.vel = 0.0
 
+		// Jumping motion
 		if .UP in gmem.input.kb.btns do gmem.player.vel.y = -PLAYER_SPEED
 		if .DOWN in gmem.input.kb.btns do gmem.player.vel.y = PLAYER_SPEED
 		if .LEFT in gmem.input.kb.btns do gmem.player.vel.x = -PLAYER_SPEED
 		if .RIGHT in gmem.input.kb.btns do gmem.player.vel.x = PLAYER_SPEED
+		if .RIGHT_FACE_UP in gmem.input.gamepad.btns do gmem.player.vel.y = -PLAYER_SPEED
+		if .RIGHT_FACE_DOWN in gmem.input.gamepad.btns do gmem.player.vel.y = PLAYER_SPEED
+		if .RIGHT_FACE_LEFT in gmem.input.gamepad.btns do gmem.player.vel.x = -PLAYER_SPEED
+		if .RIGHT_FACE_RIGHT in gmem.input.gamepad.btns do gmem.player.vel.x = PLAYER_SPEED
+
+		// Smooth motion
+		gmem.player.vel.x = gmem.input.kb.axis.x
+		gmem.player.vel.y = gmem.input.kb.axis.y
+		gmem.player.vel.x = gmem.input.gamepad.laxis.x
+		gmem.player.vel.y = gmem.input.gamepad.laxis.y
 
 		gmem.player.pos += gmem.player.vel
 
@@ -94,9 +99,6 @@ update :: proc(gmem: ^common.Memory) {
 		if gmem.player.pos.x > (common.WINDOW_WIDTH - common.TILE_SIZE) do gmem.player.pos.x = common.WINDOW_WIDTH - common.TILE_SIZE
 		if gmem.player.pos.y < 0 do gmem.player.pos.y = 0
 		if gmem.player.pos.y > (common.WINDOW_HEIGHT - common.TILE_SIZE) do gmem.player.pos.y = common.WINDOW_HEIGHT - common.TILE_SIZE
-
-		// gmem.player.tilepos.x = u8(gmem.player.pos.x / common.TILE_SIZE)
-		// gmem.player.tilepos.y = u8(gmem.player.pos.y / common.TILE_SIZE)
 
 		player_rect := rl.Rectangle {
 			x      = gmem.player.pos.x,
@@ -134,9 +136,9 @@ update :: proc(gmem: ^common.Memory) {
 				height = f32(e.collider[0] * common.SCALE),
 			}
 
-			// if rl.CheckCollisionRecs(player_rect, e_rect) {
-			// 	fmt.println("collision")
-			// }
+			if rl.CheckCollisionRecs(player_rect, e_rect) {
+				fmt.println("collision")
+			}
 
 			if e.timer > 0 {
 				e.timer -= rl.GetFrameTime()
@@ -273,18 +275,16 @@ render :: proc(gmem: ^common.Memory) {
 				0,
 				rl.WHITE,
 			)
-		}
 
-		when HAS_LEVEL_DEBUG {
-			// for t, i in level.layers[.TRIGGERS].entities {
-			// 	rl.DrawRectangleLines(
-			// 		i32(t.pos.x * common.SCALE),
-			// 		i32(t.pos.y * common.SCALE),
-			// 		i32(t.size[1] * common.SCALE),
-			// 		i32(t.size[0] * common.SCALE),
-			// 		rl.RED,
-			// 	)
-			// }
+			when HAS_COLLIDERS {
+				rl.DrawRectangleLines(
+					i32(e.pos.x * common.SCALE),
+					i32(e.pos.y * common.SCALE),
+					i32(e.size[0] * common.SCALE),
+					i32(e.size[1] * common.SCALE),
+					rl.RED,
+				)
+			}
 		}
 
 		// Render player
@@ -302,7 +302,7 @@ render :: proc(gmem: ^common.Memory) {
 			rl.WHITE,
 		)
 
-		when HAS_LEVEL_DEBUG {
+		when HAS_COLLIDERS {
 			rl.DrawRectangleLines(
 				i32(gmem.player.pos.x * common.SCALE),
 				i32(gmem.player.pos.y * common.SCALE),
@@ -312,8 +312,8 @@ render :: proc(gmem: ^common.Memory) {
 			)
 		}
 
-	// Render UI
-	// ui.render(gmem)
+		// Render UI
+		ui.render(gmem)
 
 	case .GAME_OVER:
 		win_w := f32(600)

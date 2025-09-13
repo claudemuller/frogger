@@ -106,6 +106,13 @@ Memory :: struct {
 
 load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 	// Load player
+	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
+	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
+	// gmem.player = common.Entity {
+	// 	pos     = {f32(midway_x_tile) * common.TILE_SIZE, f32(bottom_y_tile) * common.TILE_SIZE},
+	// 	tilepos = {midway_x_tile, bottom_y_tile},
+	// 	size    = {20, 20},
+	// }
 	gmem.player.texture_id = "player"
 	load_texture(&gmem.textures, gmem.player.texture_id, "res/frogger.png")
 	gmem.player.pos = {WINDOW_WIDTH / 4, WINDOW_HEIGHT / 2 - 32}

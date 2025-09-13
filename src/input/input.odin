@@ -1,6 +1,7 @@
 package input
 
 import "../utils"
+import "core:fmt"
 import rl "vendor:raylib"
 
 MOUSE_SCROLL_SPEED :: 30
@@ -13,6 +14,10 @@ MouseButton :: enum {
 }
 
 GamepadButton :: enum {
+	LEFT_FACE_UP,
+	LEFT_FACE_RIGHT,
+	LEFT_FACE_DOWN,
+	LEFT_FACE_LEFT,
 	RIGHT_FACE_UP,
 	RIGHT_FACE_RIGHT,
 	RIGHT_FACE_DOWN,
@@ -52,6 +57,19 @@ Input :: struct {
 	},
 }
 
+// TODO: fix this
+gamepad_id: i32 = 3
+
+setup :: proc() {
+	for i in 0 ..< 4 {
+		fmt.printf("Detecting: %d:%s available\n", i, rl.GetGamepadName(i32(i)))
+		if rl.IsGamepadAvailable(i32(i)) {
+			gamepad_id = i32(i)
+			fmt.printf("Gamepad %s available\n", rl.GetGamepadName(i32(i)))
+		}
+	}
+}
+
 process :: proc(input: ^Input) {
 	input.mouse.wheel_delta = rl.GetMouseWheelMove()
 	input.mouse.pos_px = rl.GetMousePosition()
@@ -66,20 +84,24 @@ process :: proc(input: ^Input) {
 	// if rl.IsMouseButtonDown(.MIDDLE) do input.mouse.btns += {.MIDDLE}
 	// if rl.IsMouseButtonUp(.MIDDLE) do input.mouse.btns -= {.MIDDLE}
 
-	input.gamepad.laxis.x = rl.GetGamepadAxisMovement(0, .LEFT_X)
-	input.gamepad.laxis.y = rl.GetGamepadAxisMovement(0, .LEFT_Y)
-	input.gamepad.raxis.x = rl.GetGamepadAxisMovement(0, .RIGHT_X)
-	input.gamepad.raxis.y = rl.GetGamepadAxisMovement(0, .RIGHT_Y)
+	input.gamepad.laxis.x = rl.GetGamepadAxisMovement(gamepad_id, .LEFT_X)
+	input.gamepad.laxis.y = rl.GetGamepadAxisMovement(gamepad_id, .LEFT_Y)
+	input.gamepad.raxis.x = rl.GetGamepadAxisMovement(gamepad_id, .RIGHT_X)
+	input.gamepad.raxis.y = rl.GetGamepadAxisMovement(gamepad_id, .RIGHT_Y)
 
 	input.gamepad.btns = {}
-	if rl.IsGamepadButtonPressed(0, .RIGHT_FACE_UP) do input.gamepad.btns += {.RIGHT_FACE_UP}
-	if rl.IsGamepadButtonPressed(0, .RIGHT_FACE_RIGHT) do input.gamepad.btns += {.RIGHT_FACE_RIGHT}
-	if rl.IsGamepadButtonPressed(0, .RIGHT_FACE_DOWN) do input.gamepad.btns += {.RIGHT_FACE_DOWN}
-	if rl.IsGamepadButtonPressed(0, .RIGHT_FACE_LEFT) do input.gamepad.btns += {.RIGHT_FACE_LEFT}
-	if rl.IsGamepadButtonPressed(0, .LEFT_TRIGGER_1) do input.gamepad.btns += {.LEFT_SHOULDER}
-	if rl.IsGamepadButtonDown(0, .LEFT_TRIGGER_2) do input.gamepad.btns += {.LEFT_TRIGGER}
-	if rl.IsGamepadButtonPressed(0, .RIGHT_TRIGGER_1) do input.gamepad.btns += {.RIGHT_SHOULDER}
-	if rl.IsGamepadButtonDown(0, .RIGHT_TRIGGER_2) do input.gamepad.btns += {.RIGHT_TRIGGER}
+	if rl.IsGamepadButtonPressed(gamepad_id, .LEFT_FACE_UP) do input.gamepad.btns += {.LEFT_FACE_UP}
+	if rl.IsGamepadButtonPressed(gamepad_id, .LEFT_FACE_RIGHT) do input.gamepad.btns += {.LEFT_FACE_RIGHT}
+	if rl.IsGamepadButtonPressed(gamepad_id, .LEFT_FACE_DOWN) do input.gamepad.btns += {.LEFT_FACE_DOWN}
+	if rl.IsGamepadButtonPressed(gamepad_id, .LEFT_FACE_LEFT) do input.gamepad.btns += {.LEFT_FACE_LEFT}
+	if rl.IsGamepadButtonPressed(gamepad_id, .RIGHT_FACE_UP) do input.gamepad.btns += {.RIGHT_FACE_UP}
+	if rl.IsGamepadButtonPressed(gamepad_id, .RIGHT_FACE_RIGHT) do input.gamepad.btns += {.RIGHT_FACE_RIGHT}
+	if rl.IsGamepadButtonPressed(gamepad_id, .RIGHT_FACE_DOWN) do input.gamepad.btns += {.RIGHT_FACE_DOWN}
+	if rl.IsGamepadButtonPressed(gamepad_id, .RIGHT_FACE_LEFT) do input.gamepad.btns += {.RIGHT_FACE_LEFT}
+	if rl.IsGamepadButtonPressed(gamepad_id, .LEFT_TRIGGER_1) do input.gamepad.btns += {.LEFT_SHOULDER}
+	if rl.IsGamepadButtonDown(gamepad_id, .LEFT_TRIGGER_2) do input.gamepad.btns += {.LEFT_TRIGGER}
+	if rl.IsGamepadButtonPressed(gamepad_id, .RIGHT_TRIGGER_1) do input.gamepad.btns += {.RIGHT_SHOULDER}
+	if rl.IsGamepadButtonDown(gamepad_id, .RIGHT_TRIGGER_2) do input.gamepad.btns += {.RIGHT_TRIGGER}
 
 	input.kb.axis.x = utils.btof(rl.IsKeyDown(.RIGHT)) - utils.btof(rl.IsKeyDown(.LEFT))
 	input.kb.axis.x += utils.btof(rl.IsKeyDown(.D)) - utils.btof(rl.IsKeyDown(.A))
@@ -100,13 +122,4 @@ process :: proc(input: ^Input) {
 	if rl.IsKeyReleased(.LEFT) do input.kb.btns -= {.LEFT}
 	if rl.IsKeyPressed(.RIGHT) do input.kb.btns += {.RIGHT}
 	if rl.IsKeyReleased(.RIGHT) do input.kb.btns -= {.RIGHT}
-
-	// if rl.IsKeyDown(.UP) do input.kb.btns += {.UP}
-	// if rl.IsKeyUp(.UP) do input.kb.btns -= {.UP}
-	// if rl.IsKeyDown(.DOWN) do input.kb.btns += {.DOWN}
-	// if rl.IsKeyUp(.DOWN) do input.kb.btns -= {.DOWN}
-	// if rl.IsKeyDown(.LEFT) do input.kb.btns += {.LEFT}
-	// if rl.IsKeyUp(.LEFT) do input.kb.btns -= {.LEFT}
-	// if rl.IsKeyDown(.RIGHT) do input.kb.btns += {.RIGHT}
-	// if rl.IsKeyUp(.RIGHT) do input.kb.btns -= {.RIGHT}
 }
