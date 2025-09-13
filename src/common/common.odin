@@ -2,6 +2,7 @@ package common
 
 import "../input"
 import "../tiled"
+import "../utils"
 import "core:encoding/json"
 import "core:fmt"
 import "core:os"
@@ -94,14 +95,17 @@ Tile :: struct {
 
 Memory :: struct {
 	win_name:     cstring,
-	is_running:   bool,
 	currentLevel: u8,
-	splash_timer: f32,
+	splash_timer: utils.Timer,
+	memctr:       f64,
 	state:        [2]State,
 	textures:     map[string]rl.Texture2D,
 	level:        Level,
 	input:        input.Input,
 	player:       Entity,
+	sound:        map[string]rl.Sound,
+	music:        map[string]rl.Music,
+	fonts:        map[string]rl.Font,
 }
 
 load_level :: proc(gmem: ^Memory, level: u8) -> bool {
@@ -404,6 +408,7 @@ State :: enum {
 	PLAYING,
 	WINNER,
 	GAME_OVER,
+	SHUTDOWN,
 }
 
 get_state :: proc(gmem: ^Memory) -> State {

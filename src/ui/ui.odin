@@ -21,8 +21,6 @@ Window :: struct {
 	height: i32,
 }
 
-font: rl.Font
-
 setup :: proc(gmem: ^common.Memory) {
 	// Load texture not found texture
 	redpx := rl.GenImageColor(1, 1, rl.RED)
@@ -31,11 +29,10 @@ setup :: proc(gmem: ^common.Memory) {
 	gmem.textures["NO_TEXTURE"] = redtex
 
 	common.load_texture(&gmem.textures, "dxtrs-games", "res/dxtrs-games.png")
-	common.load_texture(&gmem.textures, "dxtrs-games-gif", "res/dxtrs-games.gif")
 	common.load_texture(&gmem.textures, WIN_DECORATION, "res/window-decoration.png")
 	common.load_texture(&gmem.textures, BUTTON_GREEN, "res/button-green.png")
 
-	font = rl.LoadFont("res/VT323-Regular.ttf")
+	gmem.fonts["vt323"] = rl.LoadFont("res/VT323-Regular.ttf")
 }
 
 update :: proc(gmem: ^common.Memory) -> bool {
@@ -48,9 +45,7 @@ render :: proc(gmem: ^common.Memory) {
 	// drawButton(gmem, "testing", 400-50, 200-10)
 }
 
-memctr: f64
-
-draw_boot_screen :: proc(gmem: ^common.Memory) {
+draw_splash_screen :: proc(gmem: ^common.Memory) {
 	rl.ClearBackground(rl.BLACK)
 
 	font_size: f32 = 22
@@ -66,13 +61,13 @@ Memory Test: %d KB`
 
 
 	date_str := "15/03/2025"
-	memctr = rl.GetTime() * 1000 - memctr
+	gmem.memctr = rl.GetTime() * 1000 - gmem.memctr
 
 	WIN_PADDING :: 20
 
 	rl.DrawTextEx(
-		font,
-		fmt.ctprintf(top_txt, date_str, i32(memctr)),
+		gmem.fonts["vt323"],
+		fmt.ctprintf(top_txt, date_str, i32(gmem.memctr)),
 		{WIN_PADDING * 2, WIN_PADDING * 2},
 		font_size,
 		1,
@@ -81,7 +76,7 @@ Memory Test: %d KB`
 
 	bottom_txt := "Press DEL to enter SETUP\n%s-SYS-2401-A/C/2B"
 	rl.DrawTextEx(
-		font,
+		gmem.fonts["vt323"],
 		fmt.ctprintf(bottom_txt, date_str),
 		{WIN_PADDING * 2, f32(rl.GetScreenHeight()) - WIN_PADDING * 2 - font_size * 2},
 		font_size,

@@ -24,13 +24,11 @@ init :: proc(win_name: cstring) -> ^common.Memory {
 	rl.SetTargetFPS(60)
 	rl.SetExitKey(.ESCAPE)
 
+	rl.InitAudioDevice()
+
 	gmem := new(common.Memory)
 	gmem.win_name = win_name
 	setup(gmem)
-
-	gmem.is_running = true
-	gmem.splash_timer = 2.0
-	common.push_state(gmem, .SPLASH)
 
 	return gmem
 }
@@ -43,11 +41,18 @@ setup :: proc(gmem: ^common.Memory) {
 	input.setup()
 	ui.setup(gmem)
 
+	gmem.sound["dxtrs"] = rl.LoadSound("res/dxtrs.mp3")
+	gmem.sound["jump"] = rl.LoadSound("res/jump.mp3")
+	gmem.music["traffic"] = rl.LoadMusicStream("res/traffic.mp3")
+
 	boot_game(gmem)
 }
 
 run :: proc(gmem: ^common.Memory) {
 	for !rl.WindowShouldClose() {
+		if common.get_state(gmem) == .SHUTDOWN {
+			break
+		}
 		input.process(&gmem.input)
 		update(gmem)
 		render(gmem)
@@ -63,27 +68,23 @@ update :: proc(gmem: ^common.Memory) {
 
 	switch common.get_state(gmem) {
 	case .SPLASH:
-		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
-			// rl.StopSound(booting_sound)
-			boot_timer = utils.Timer{}
+		if .LEFT in gmem.input.mouse.btns ||
+		   .SPACE in gmem.input.kb.btns ||
+		   utils.timer_done(gmem.splash_timer) {
+			rl.StopSound(gmem.sound["dxtrs"])
+			gmem.splash_timer = utils.Timer{}
 			common.push_state(gmem, .MAIN_MENU)
 		}
-
-		if utils.timer_done(boot_timer) {
-			common.push_state(gmem, .MAIN_MENU)
-		}
-
-	// if gmem.splash_timer <= 0 {
-	// 	common.push_state(gmem, .MAIN_MENU)
-	// }
-	// gmem.splash_timer -= rl.GetFrameTime()
 
 	case .MAIN_MENU:
 		if .LEFT in gmem.input.mouse.btns || .SPACE in gmem.input.kb.btns {
 			common.push_state(gmem, .PLAYING)
+			rl.PlayMusicStream(gmem.music["traffic"])
 		}
 
 	case .PLAYING:
+		rl.UpdateMusicStream(gmem.music["traffic"])
+
 		// Update player
 		gmem.player.vel = 0.0
 
@@ -96,6 +97,8 @@ update :: proc(gmem: ^common.Memory) {
 		if .RIGHT_FACE_DOWN in gmem.input.gamepad.btns do gmem.player.vel.y = PLAYER_SPEED
 		if .RIGHT_FACE_LEFT in gmem.input.gamepad.btns do gmem.player.vel.x = -PLAYER_SPEED
 		if .RIGHT_FACE_RIGHT in gmem.input.gamepad.btns do gmem.player.vel.x = PLAYER_SPEED
+
+		if gmem.player.vel.y != 0 || gmem.player.vel.x != 0 do rl.PlaySound(gmem.sound["jump"])
 
 		// Smooth motion
 		// gmem.player.vel.x = gmem.input.kb.axis.x
@@ -195,9 +198,12 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 	case .WINNER:
+		rl.StopMusicStream(gmem.music["traffic"])
 		os.exit(0)
 
 	case .GAME_OVER:
+
+	case .SHUTDOWN:
 	}
 }
 
@@ -207,7 +213,7 @@ render :: proc(gmem: ^common.Memory) {
 
 	switch common.get_state(gmem) {
 	case .SPLASH:
-		ui.draw_boot_screen(gmem)
+		ui.draw_splash_screen(gmem)
 
 	case .MAIN_MENU:
 		win_w := f32(600)
@@ -399,34 +405,19 @@ render :: proc(gmem: ^common.Memory) {
 			ui.FONT_SIZE_BODY,
 			rl.DARKGRAY,
 		)
+
+	case .SHUTDOWN:
 	}
 
 	rl.EndDrawing()
 }
 
-boot_timer: utils.Timer
-booting_sound: rl.Sound
-
 boot_game :: proc(gmem: ^common.Memory) {
-	// s := f32(287 * 0.5)
-	// rl.DrawTexture(
-	// 	common.get_texture(gmem.textures, "dxtrs-games"),
-	// 	i32(common.WINDOW_WIDTH * 0.5 - s),
-	// 	i32(common.WINDOW_HEIGHT * 0.5 - s),
-	// 	rl.WHITE,
-	// )
-	// rl.DrawTexture(
-	// 	common.get_texture(gmem.textures, "dxtrs-games-gif"),
-	// 	i32(common.WINDOW_WIDTH * 0.5 - s),
-	// 	i32(common.WINDOW_HEIGHT * 0.5),
-	// 	rl.WHITE,
-	// )
-
 	BOOT_TIME :: 10 // Seconds
 
-	ui.memctr = rl.GetTime()
-	// rl.PlaySound(booting_sound)
-	utils.start_timer(&boot_timer, BOOT_TIME)
+	gmem.memctr = rl.GetTime()
+	rl.PlaySound(gmem.sound["dxtrs"])
+	utils.start_timer(&gmem.splash_timer, BOOT_TIME)
 	common.push_state(gmem, .SPLASH)
 }
 
