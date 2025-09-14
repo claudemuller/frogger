@@ -83,6 +83,8 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 	case .PLAYING:
+		if .SPACE not_in gmem.input.kb.btns do return
+
 		rl.UpdateMusicStream(gmem.music["traffic"])
 
 		// Update player
@@ -166,6 +168,13 @@ update :: proc(gmem: ^common.Memory) {
 				// }
 
 				// if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+				fmt.printf("e.pos: %v - e_other.pos: %v\n", e.pos, e_other.pos)
+				fmt.printf(
+					"e.collider: %v - e_other.collider: %v\n",
+					e.collider * common.SCALE,
+					e_other.collider * common.SCALE,
+				)
+
 				if (e_other.pos.x == e.pos.x ||
 					   i32(e_other.pos.x) + e_other.size[0] == i32(e.pos.x) + e.size[0]) {
 					fmt.println("vehicles collided")

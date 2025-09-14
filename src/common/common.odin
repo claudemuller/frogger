@@ -146,6 +146,8 @@ load_level :: proc(gmem: ^Memory, level_n: u8) -> bool {
 	fname := strings.concatenate({"data/level", n, ".json"})
 	delete(strbuf)
 
+	fname = "data/debug-level.json"
+
 	// Load level data
 	jsonData, ok := os.read_entire_file(fname)
 	if !ok {
@@ -296,7 +298,7 @@ tiled_to_game_state :: proc(
 				append(
 					gmem.level.layers[.OBJECTS].entities,
 					Entity {
-						pos        = {o.x, o.y - f32(h)}, // Have to compensate on y
+						pos        = {o.x, o.y - f32(h)}, // Compensate on y because 0,0 is bottom left of sprite in Tiled
 						size       = {w, h},
 						srcpos     = {srcx, srcy},
 						rotation   = o.rotation,
@@ -386,7 +388,7 @@ tiled_to_game_state :: proc(
 					append(
 						gmem.level.layers[.ENEMIES].entities,
 						Entity {
-							pos        = {o.x, o.y - f32(h)}, // Have to compensate on y
+							pos        = {o.x, o.y - f32(h)}, // Compensate on y because 0,0 is bottom left of sprite in Tiled
 							size       = {w, h},
 							collider   = {w, h},
 							srcpos     = {0, 0},
@@ -409,7 +411,7 @@ tiled_to_game_state :: proc(
 					append(
 						gmem.level.layers[.TRIGGERS].triggers,
 						Trigger {
-							pos  = {o.x, o.y - f32(h)}, // Have to compensate on y
+							pos  = {o.x, o.y - f32(h)}, // Compensate on y because 0,0 is bottom left of sprite in Tiled
 							size = {w, h},
 							name = o.name,
 						},
