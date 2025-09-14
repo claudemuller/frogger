@@ -8,9 +8,9 @@
  "margin":0,
  "name":"entities",
  "spacing":0,
- "tilecount":8,
+ "tilecount":9,
  "tiledversion":"1.11.2",
- "tileheight":32,
+ "tileheight":48,
  "tiles":[
         {
          "id":0,
@@ -43,12 +43,6 @@
          "imagewidth":34
         }, 
         {
-         "id":5,
-         "image":"..\/res\/semi-tractor.png",
-         "imageheight":32,
-         "imagewidth":64
-        }, 
-        {
          "id":6,
          "image":"..\/res\/hatch-back.png",
          "imageheight":24,
@@ -59,8 +53,20 @@
          "image":"..\/res\/hatch-back-blue.png",
          "imageheight":24,
          "imagewidth":34
+        }, 
+        {
+         "id":8,
+         "image":"..\/res\/semi-truck-tractor.png",
+         "imageheight":48,
+         "imagewidth":76
+        }, 
+        {
+         "id":9,
+         "image":"..\/res\/semi-truck.png",
+         "imageheight":48,
+         "imagewidth":152
         }],
- "tilewidth":64,
+ "tilewidth":152,
  "type":"tileset",
  "version":"1.10"
 }
