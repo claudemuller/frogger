@@ -8,22 +8,6 @@ import "core:strconv"
 import "core:strings"
 import rl "vendor:raylib"
 
-ObjectType :: enum {
-	TILE, //tilelayer
-	OBJECT, // objectgroup
-}
-DrawOrder :: enum {
-	TOPDOWN, // topdown
-}
-RenderOrder :: enum {
-	RIGHT_DOWN,
-}
-
-EntityType :: enum {
-	ENEMY, // Enemy
-	TRIGGER, // Trigger
-}
-
 GridOrientation :: enum {
 	UNSPECIFIED,
 	ORTHOGONAL,

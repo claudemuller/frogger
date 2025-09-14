@@ -14,7 +14,7 @@ import "core:strings"
 import rl "vendor:raylib"
 
 HAS_LEVEL_DEBUG :: #config(DEBUG, false)
-HAS_COLLIDERS :: #config(COLLIDERS, false)
+HAS_SHOW_COLLIDERS :: #config(SHOW_COLLIDERS, false)
 
 PLAYER_SPEED :: 25
 
@@ -150,19 +150,24 @@ update :: proc(gmem: ^common.Memory) {
 			}
 
 			for &e_other, j in gmem.level.layers[.ENEMIES].entities {
-				y_tolerance := math.abs(e.pos.y - e_other.pos.y)
-				if i == j || y_tolerance <= 1 || y_tolerance >= -1 {
+				y_tolerance := math.abs(
+					(e.pos.y + f32(e.size[1]) * 0.5) -
+					(e_other.pos.y + f32(e_other.size[1]) * 0.5),
+				)
+				if i == j { 	//|| y_tolerance <= 1 || y_tolerance >= -1 {
 					continue
 				}
 
-				e_other_rect := rl.Rectangle {
-					x      = e_other.pos.x * common.SCALE,
-					y      = e_other.pos.y * common.SCALE,
-					width  = f32(e_other.collider[0] * common.SCALE),
-					height = f32(e_other.collider[1] * common.SCALE),
-				}
+				// e_other_rect := rl.Rectangle {
+				// 	x      = e_other.pos.x * common.SCALE,
+				// 	y      = e_other.pos.y * common.SCALE,
+				// 	width  = f32(e_other.collider[0] * common.SCALE),
+				// 	height = f32(e_other.collider[1] * common.SCALE),
+				// }
 
-				if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+				// if rl.CheckCollisionRecs(e_other_rect, e_rect) {
+				if (e_other.pos.x == e.pos.x ||
+					   i32(e_other.pos.x) + e_other.size[0] == i32(e.pos.x) + e.size[0]) {
 					fmt.println("vehicles collided")
 
 					e.vel.x *= 0.5
@@ -262,39 +267,11 @@ render :: proc(gmem: ^common.Memory) {
 		}
 
 		for o, i in level.layers[.OBJECTS].entities {
-			draw_entity(gmem.textures, o)
+			draw_entity(gmem.textures, o, false, gmem.fonts["vt323"])
 		}
 
 		for e, i in level.layers[.ENEMIES].entities {
-			draw_entity(gmem.textures, e)
-
-			when HAS_COLLIDERS {
-				rl.DrawRectangleLines(
-					i32(e.pos.x * common.SCALE),
-					i32(e.pos.y * common.SCALE),
-					i32(e.collider[0] * common.SCALE),
-					i32(e.collider[1] * common.SCALE),
-					rl.RED,
-				)
-
-				font_size := f32(18)
-				rl.DrawTextEx(
-					gmem.fonts["vt323"],
-					fmt.ctprintf("%v:%v", e.pos.x, e.pos.y),
-					{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE - 20},
-					font_size,
-					1,
-					rl.RED,
-				)
-				rl.DrawTextEx(
-					gmem.fonts["vt323"],
-					fmt.ctprintf("%v:%v", e.collider[0], e.collider[1]),
-					{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE + f32(e.size[1]) + 25},
-					font_size,
-					1,
-					rl.RED,
-				)
-			}
+			draw_entity(gmem.textures, e, HAS_SHOW_COLLIDERS, gmem.fonts["vt323"])
 		}
 
 		// Render player
@@ -312,12 +289,33 @@ render :: proc(gmem: ^common.Memory) {
 			rl.WHITE,
 		)
 
-		when HAS_COLLIDERS {
+		when HAS_SHOW_COLLIDERS {
 			rl.DrawRectangleLines(
 				i32(gmem.player.pos.x * common.SCALE),
 				i32(gmem.player.pos.y * common.SCALE),
 				i32(gmem.player.collider[1] * common.SCALE),
 				i32(gmem.player.collider[0] * common.SCALE),
+				rl.RED,
+			)
+
+			font_size := f32(18)
+			rl.DrawTextEx(
+				gmem.fonts["vt323"],
+				fmt.ctprintf("%.2f : %.2f", gmem.player.pos.x, gmem.player.pos.y),
+				{gmem.player.pos.x * common.SCALE - 20, gmem.player.pos.y * common.SCALE - 20},
+				font_size,
+				1,
+				rl.RED,
+			)
+			rl.DrawTextEx(
+				gmem.fonts["vt323"],
+				fmt.ctprintf("%.2f : %.2f", gmem.player.collider[0], gmem.player.collider[1]),
+				{
+					gmem.player.pos.x * common.SCALE - 20,
+					gmem.player.pos.y * common.SCALE + f32(gmem.player.size[1]) + 25,
+				},
+				font_size,
+				1,
 				rl.RED,
 			)
 		}
@@ -386,10 +384,19 @@ render :: proc(gmem: ^common.Memory) {
 	case .SHUTDOWN:
 	}
 
+	if HAS_LEVEL_DEBUG {
+		rl.DrawFPS(10, 10)
+	}
+
 	rl.EndDrawing()
 }
 
-draw_entity :: proc(textures: map[string]rl.Texture2D, e: common.Entity) {
+draw_entity :: proc(
+	textures: map[string]rl.Texture2D,
+	e: common.Entity,
+	show_colliders: bool,
+	font: rl.Font,
+) {
 	w := f32(e.size[0])
 	if e.fliph do w *= -1
 
@@ -409,6 +416,34 @@ draw_entity :: proc(textures: map[string]rl.Texture2D, e: common.Entity) {
 		0,
 		rl.WHITE,
 	)
+
+	if show_colliders {
+		rl.DrawRectangleLines(
+			i32(e.pos.x * common.SCALE),
+			i32(e.pos.y * common.SCALE),
+			i32(e.collider[0] * common.SCALE),
+			i32(e.collider[1] * common.SCALE),
+			rl.RED,
+		)
+
+		font_size := f32(18)
+		rl.DrawTextEx(
+			font,
+			fmt.ctprintf("%.2f : %.2f", e.pos.x, e.pos.y),
+			{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE - 20},
+			font_size,
+			1,
+			rl.RED,
+		)
+		rl.DrawTextEx(
+			font,
+			fmt.ctprintf("%.2f : %.2f", e.collider[0], e.collider[1]),
+			{e.pos.x * common.SCALE - 20, e.pos.y * common.SCALE + f32(e.size[1]) + 25},
+			font_size,
+			1,
+			rl.RED,
+		)
+	}
 }
 
 

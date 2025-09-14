@@ -61,6 +61,24 @@ LayerType :: enum {
 	UI,
 }
 
+ObjectType :: enum {
+	TILE, //tilelayer
+	OBJECT, // objectgroup
+}
+
+DrawOrder :: enum {
+	TOPDOWN, // topdown
+}
+
+RenderOrder :: enum {
+	RIGHT_DOWN,
+}
+
+EntityType :: enum {
+	ENEMY, // Enemy
+	TRIGGER, // Trigger
+}
+
 Level :: struct {
 	tile_width:    int,
 	tile_height:   int,
@@ -108,7 +126,7 @@ Memory :: struct {
 	fonts:        map[string]rl.Font,
 }
 
-load_level :: proc(gmem: ^Memory, level: u8) -> bool {
+load_level :: proc(gmem: ^Memory, level_n: u8) -> bool {
 	// Load player
 	// midway_x_tile := u8(common.NUM_TILES_IN_ROW * 0.5)
 	// bottom_y_tile := u8(common.NUM_TILES_IN_COL)
@@ -123,8 +141,10 @@ load_level :: proc(gmem: ^Memory, level: u8) -> bool {
 	gmem.player.size = {32, 32}
 	gmem.player.collider = {32, 32}
 
-	// TODO:(lukefilewalker) check if the file for "level" exists
-	fname := "data/level1.json"
+	strbuf := make([]byte, 5)
+	n := strconv.itoa(strbuf, int(level_n))
+	fname := strings.concatenate({"data/level", n, ".json"})
+	delete(strbuf)
 
 	// Load level data
 	jsonData, ok := os.read_entire_file(fname)
