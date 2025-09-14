@@ -47,9 +47,9 @@ Entity :: struct {
 	type:             string,
 	name:             string,
 	direction:        string,
-	timer:            f32,
+	timer:            utils.Timer,
 	backoff:          bool,
-	backoff_duration: f32,
+	backoff_duration: f64,
 }
 
 LayerType :: enum {
@@ -146,7 +146,7 @@ load_level :: proc(gmem: ^Memory, level_n: u8) -> bool {
 	fname := strings.concatenate({"data/level", n, ".json"})
 	delete(strbuf)
 
-	fname = "data/debug-level.json"
+	// fname = "data/debug-level.json"
 
 	// Load level data
 	jsonData, ok := os.read_entire_file(fname)

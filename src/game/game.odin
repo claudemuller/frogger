@@ -57,6 +57,7 @@ run :: proc(gmem: ^common.Memory) {
 		update(gmem)
 		render(gmem)
 	}
+	rl.CloseWindow()
 	// destroy()
 }
 
@@ -83,7 +84,7 @@ update :: proc(gmem: ^common.Memory) {
 		}
 
 	case .PLAYING:
-		if .SPACE not_in gmem.input.kb.btns do return
+		// if .SPACE not_in gmem.input.kb.btns do return
 
 		rl.UpdateMusicStream(gmem.music["traffic"])
 
@@ -124,7 +125,7 @@ update :: proc(gmem: ^common.Memory) {
 
 		// Update enemies
 		for &e, i in gmem.level.layers[.ENEMIES].entities {
-			e.pos += e.vel
+			e.pos.x += e.vel.x
 			if e.pos.x <= -f32(e.size[0]) {
 				e.pos.x = common.WINDOW_WIDTH / 2
 			} else if e.pos.x >= common.WINDOW_WIDTH / 2 {
@@ -143,12 +144,11 @@ update :: proc(gmem: ^common.Memory) {
 				fmt.println("collision")
 			}
 
-			if e.timer > 0 {
-				e.timer -= rl.GetFrameTime()
-			}
-			if e.timer <= 0 && e.backoff {
-				e.vel.x *= 2.0
+			if utils.timer_done(e.timer) && e.backoff {
+				fmt.println("timer expires")
+				e.vel.x = e.vel.y
 				e.backoff = false
+				e.timer = utils.Timer{}
 			}
 
 			for &e_other, j in gmem.level.layers[.ENEMIES].entities {
@@ -156,31 +156,58 @@ update :: proc(gmem: ^common.Memory) {
 					(e.pos.y + f32(e.size[1]) * 0.5) -
 					(e_other.pos.y + f32(e_other.size[1]) * 0.5),
 				)
-				if i == j { 	//|| y_tolerance <= 1 || y_tolerance >= -1 {
+				// Skip if the two being compared are not in the same lane
+				if i == j || y_tolerance > 30 {
 					continue
 				}
 
-				// e_other_rect := rl.Rectangle {
-				// 	x      = e_other.pos.x * common.SCALE,
-				// 	y      = e_other.pos.y * common.SCALE,
-				// 	width  = f32(e_other.collider[0] * common.SCALE),
-				// 	height = f32(e_other.collider[1] * common.SCALE),
-				// }
+				when HAS_LEVEL_DEBUG {
+					fmt.printf(
+						"[%s]e.pos: %v - [%s]e_other.pos: %v\n",
+						e.name,
+						e.pos,
+						e_other.name,
+						e_other.pos,
+					)
+					fmt.printf(
+						"e.pos.midy: %.2f -e.other_pos.midy: %.2f  -- %.2f\n",
+						e.pos.y + f32(e.size[1]) / 2,
+						e_other.pos.y + f32(e_other.size[1]) / 2,
+						y_tolerance,
+					)
+					fmt.printf(
+						"e_right: %d - e_other_left: %d  -  e_other_right: %d - e_left: %d\n",
+						i32(e.pos.x) + e.size[0],
+						i32(e_other.pos.x),
+						i32(e_other.pos.x) + e_other.size[0],
+						i32(e.pos.x),
+					)
+					fmt.printf(
+						"e.collider: %v - e_other.collider: %v\n\n",
+						e.collider * common.SCALE,
+						e_other.collider * common.SCALE,
+					)
+				}
 
-				// if rl.CheckCollisionRecs(e_other_rect, e_rect) {
-				fmt.printf("e.pos: %v - e_other.pos: %v\n", e.pos, e_other.pos)
-				fmt.printf(
-					"e.collider: %v - e_other.collider: %v\n",
-					e.collider * common.SCALE,
-					e_other.collider * common.SCALE,
-				)
+				// TODO: only check one side collision depending on the direction of movement
+				// TODO: check if entities start off screen on top of one another, fix that
 
-				if (e_other.pos.x == e.pos.x ||
-					   i32(e_other.pos.x) + e_other.size[0] == i32(e.pos.x) + e.size[0]) {
-					fmt.println("vehicles collided")
+				if math.abs(i32(e.pos.x) + e.size[0] - i32(e_other.pos.x)) < 2 {
+					fmt.printf("%s\n", e.name)
 
+					e_other.vel.y = e_other.vel.x
+					e_other.vel.x *= 0.5
+					e_other.backoff_duration = 3
+					utils.start_timer(&e_other.timer, e_other.backoff_duration)
+					e_other.backoff = true
+				}
+				if math.abs(i32(e_other.pos.x) + e_other.size[0] - i32(e.pos.x)) < 2 {
+					fmt.printf("%s\n", e_other.name)
+
+					e.vel.y = e.vel.x
 					e.vel.x *= 0.5
-					e.timer = e.backoff_duration
+					e.backoff_duration = 3
+					utils.start_timer(&e.timer, e.backoff_duration)
 					e.backoff = true
 				}
 			}
