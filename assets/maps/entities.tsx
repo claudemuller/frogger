@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="entities" tilewidth="152" tileheight="48" tilecount="9" columns="0">
+<tileset version="1.10" tiledversion="1.11.2" name="entities" tilewidth="152" tileheight="48" tilecount="10" columns="0">
+ <editorsettings>
+  <export target="../../data/entities.tsj" format="json"/>
+ </editorsettings>
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image source="../../res/hatch-back-green.png" width="34" height="24"/>
@@ -27,5 +30,8 @@
  </tile>
  <tile id="9">
   <image source="../../res/semi-truck.png" width="152" height="48"/>
+ </tile>
+ <tile id="11">
+  <image source="../../res/motorbike.png" width="27" height="17"/>
  </tile>
 </tileset>

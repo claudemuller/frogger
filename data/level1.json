@@ -1029,7 +1029,7 @@
                "gid": 29,
                "height": 48,
                "id": 52,
-               "name": "",
+               "name": "Semi Truck Tractor",
                "properties": [
                   {
                      "name": "Speed",
@@ -1048,7 +1048,7 @@
                "gid": 30,
                "height": 48,
                "id": 53,
-               "name": "",
+               "name": "Semi Truck",
                "properties": [
                   {
                      "name": "Speed",
@@ -1062,6 +1062,63 @@
                "width": 152,
                "x": 74.2160996897839,
                "y": 155.91019506809
+            },
+            {
+               "gid": 2147483680,
+               "height": 17,
+               "id": 57,
+               "name": "Motobike",
+               "properties": [
+                  {
+                     "name": "Speed",
+                     "type": "float",
+                     "value": 1.6
+                  }
+               ],
+               "rotation": 0,
+               "type": "Enemy",
+               "visible": true,
+               "width": 27,
+               "x": 225.5,
+               "y": 278.5
+            },
+            {
+               "gid": 32,
+               "height": 17,
+               "id": 58,
+               "name": "Motorbike",
+               "properties": [
+                  {
+                     "name": "Speed",
+                     "type": "float",
+                     "value": 1.6
+                  }
+               ],
+               "rotation": 0,
+               "type": "Enemy",
+               "visible": true,
+               "width": 27,
+               "x": 385.5,
+               "y": 374.5
+            },
+            {
+               "gid": 32,
+               "height": 17,
+               "id": 59,
+               "name": "Motorbike",
+               "properties": [
+                  {
+                     "name": "Speed",
+                     "type": "float",
+                     "value": 1.6
+                  }
+               ],
+               "rotation": 0,
+               "type": "Enemy",
+               "visible": true,
+               "width": 27,
+               "x": 833.5,
+               "y": 147.5
             }
          ],
          "opacity": 1,
@@ -1072,7 +1129,7 @@
       }
    ],
    "nextlayerid": 4,
-   "nextobjectid": 54,
+   "nextobjectid": 60,
    "orientation": "orthogonal",
    "renderorder": "right-down",
    "tiledversion": "1.11.2",
