@@ -125,13 +125,6 @@ update :: proc(gmem: ^common.Memory) {
 
 		// Update enemies
 		for &e, i in gmem.level.layers[.ENEMIES].entities {
-			e.pos.x += e.vel.x
-			if e.pos.x <= -f32(e.size[0]) {
-				e.pos.x = common.WINDOW_WIDTH / 2
-			} else if e.pos.x >= common.WINDOW_WIDTH / 2 {
-				e.pos.x = -f32(e.size[0])
-			}
-
 			e_rect := rl.Rectangle {
 				x      = e.pos.x * common.SCALE,
 				y      = e.pos.y * common.SCALE,
@@ -189,28 +182,52 @@ update :: proc(gmem: ^common.Memory) {
 					)
 				}
 
+				e_other_rect := rl.Rectangle {
+					x      = e_other.pos.x * common.SCALE,
+					y      = e_other.pos.y * common.SCALE,
+					width  = f32(e_other.collider[0] * common.SCALE),
+					height = f32(e_other.collider[1] * common.SCALE),
+				}
+
 				// TODO: only check one side collision depending on the direction of movement
 				// TODO: check if entities start off screen on top of one another, fix that
 
-				if math.abs(i32(e.pos.x) + e.size[0] - i32(e_other.pos.x)) < 2 {
+				if e.pos.x <= -f32(e.size[0])+50 {
+					e.pos.x = common.WINDOW_WIDTH / 2-50
+				} else if e.pos.x >= common.WINDOW_WIDTH / 2-50 {
+					e.pos.x = -f32(e.size[0])+50
+				}
+
+				if rl.CheckCollisionRecs(e_rect, e_other_rect) {
+					// if math.abs(i32(e.pos.x) + e.size[0] - i32(e_other.pos.x)) < 2 {
 					fmt.printf("%s\n", e.name)
 
-					e_other.vel.y = e_other.vel.x
-					e_other.vel.x *= 0.5
-					e_other.backoff_duration = 3
-					utils.start_timer(&e_other.timer, e_other.backoff_duration)
-					e_other.backoff = true
-				}
-				if math.abs(i32(e_other.pos.x) + e_other.size[0] - i32(e.pos.x)) < 2 {
-					fmt.printf("%s\n", e_other.name)
-
-					e.vel.y = e.vel.x
-					e.vel.x *= 0.5
-					e.backoff_duration = 3
-					utils.start_timer(&e.timer, e.backoff_duration)
-					e.backoff = true
+					if e.vel.x > e_other.vel.x {
+						e_other.vel.y = e_other.vel.x
+						e_other.vel.x *= 0.5
+						e_other.backoff_duration = 3
+						utils.start_timer(&e_other.timer, e_other.backoff_duration)
+						e_other.backoff = true
+					} else {
+						e.vel.y = e.vel.x
+						e.vel.x *= 0.5
+						e.backoff_duration = 3
+						utils.start_timer(&e.timer, e.backoff_duration)
+						e.backoff = true
+					}
+					// if math.abs(i32(e_other.pos.x) + e_other.size[0] - i32(e.pos.x)) < 2 {
+					// 	fmt.printf("%s\n", e_other.name)
+					//
+					// 	e.vel.y = e.vel.x
+					// 	e.vel.x *= 0.5
+					// 	e.backoff_duration = 3
+					// 	utils.start_timer(&e.timer, e.backoff_duration)
+					// 	e.backoff = true
+					// }
 				}
 			}
+
+			e.pos.x += e.vel.x
 		}
 
 		for t in gmem.level.layers[.TRIGGERS].triggers {

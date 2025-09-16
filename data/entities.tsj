@@ -8,7 +8,7 @@
  "margin":0,
  "name":"entities",
  "spacing":0,
- "tilecount":10,
+ "tilecount":11,
  "tiledversion":"1.11.2",
  "tileheight":48,
  "tiles":[
@@ -67,9 +67,15 @@
          "imagewidth":152
         }, 
         {
-         "id":11,
+         "id":12,
+         "image":"..\/res\/bus.png",
+         "imageheight":42,
+         "imagewidth":125
+        }, 
+        {
+         "id":13,
          "image":"..\/res\/motorbike.png",
-         "imageheight":17,
+         "imageheight":22,
          "imagewidth":27
         }],
  "tilewidth":152,

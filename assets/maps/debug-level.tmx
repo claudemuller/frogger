@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="28" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="60">
  <editorsettings>
-  <export target="../../data/debug-level.json" format="json"/>
+  <export target="../../data/debug-level.tmj" format="json"/>
  </editorsettings>
  <tileset firstgid="1" source="tiles.tsx"/>
  <tileset firstgid="21" source="entities.tsx"/>
@@ -27,17 +27,17 @@
  </layer>
  <objectgroup id="3" name="Obstacles"/>
  <objectgroup id="2" name="Entities">
-  <object id="10" name="Car" type="Enemy" gid="22" x="238.42" y="53.7951" width="34" height="24">
+  <object id="10" name="Car" type="Enemy" gid="22" x="628.279" y="52.2956" width="34" height="24">
    <properties>
     <property name="Speed" type="float" value="1"/>
    </properties>
   </object>
-  <object id="53" name="Semi Truck" type="Enemy" gid="30" x="66.5693" y="60" width="152" height="48">
+  <object id="53" name="Semi Truck" type="Enemy" gid="30" x="456.428" y="58.5005" width="152" height="48">
    <properties>
     <property name="Speed" type="float" value="0"/>
    </properties>
   </object>
-  <object id="59" name="Motorbike" type="Enemy" gid="32" x="332.832" y="41.2129" width="27" height="17">
+  <object id="59" name="Motorbike" type="Enemy" gid="32" x="722.691" y="39.7134" width="27" height="17">
    <properties>
     <property name="Speed" type="float" value="0"/>
    </properties>
